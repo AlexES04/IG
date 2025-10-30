@@ -11,7 +11,7 @@ Este proyecto implementa una simulación 3D interactiva del sistema solar con co
 	- Representación del sol y planetas con texturas propias.
 	- Trayectoria de cada planeta dibujada (órbitas).
 - Cámara principal y *viewport*:
-	- [Cámara libre](#controles) que simula un vuelo por el modelo:
+	- Cámara libre que simula un vuelo por el modelo:
 	-  _Viewport_ pequeño en la parte inferior de la pantalla que muestra un planeta seleccionado.
 - Iluminación:
 	- Añadida luz ambiental para la iluminación general.
