@@ -4,7 +4,7 @@
 
 **Fecha:** 30 de Octubre del 2025
 
-Este proyecto implementa una simulación 3D interactiva del sistema solar con control de vuelo, texturas, órbitas, sombras y cámara secundaria. Ha sido realizado en _CodeSandbox_, en JavaScript, usando la librería _Three.js_.
+Este proyecto implementa una simulación 3D interactiva del sistema solar con control de vuelo, texturas, órbitas, sombras y cámara secundaria. Ha sido realizado en _CodeSandbox_, en JavaScript, usando la librería _Three.js_. [Enlace a vídeo de YouTube](https://youtu.be/Z_pMQ0jz0a8) para visualización del proyecto en funcionamiento.
 
 ## Características
 - Visualización 3D del Sistema Solar:
