@@ -23,6 +23,7 @@ Este proyecto implementa una simulación 3D interactiva del sistema solar con co
 	- Anillo de Saturno.
 	- Sombreado especular con control de brillo.
 	- Luna terrestre con su propia órbita y textura.
+ 	- Textura importada en el fondo que simula la vista de la Vía Láctea.
 
 ## Interfaz de usuario 
 La interfaz de usuario creada con la librería lil.gui permite dos acciones:
