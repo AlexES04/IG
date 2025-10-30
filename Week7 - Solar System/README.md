@@ -1,6 +1,7 @@
 # Práctica semana 6/7 - Sistema solar
 
 **Autor:** Alejandro de Olózaga Ramírez
+
 **Fecha:** 30 de Octubre del 2025
 
 Este proyecto implementa una simulación 3D interactiva del sistema solar con control de vuelo, texturas, órbitas, sombras y cámara secundaria. Ha sido realizado en _CodeSandbox_, en JavaScript, usando la librería _Three.js_.
