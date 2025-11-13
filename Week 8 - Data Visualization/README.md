@@ -7,7 +7,11 @@
 ## Descripción
 En esta práctica, se propone una aplicación web desarrollada en [Codesandbox](https://codesandbox.io/p/sandbox/ig-semana-8-parking-mg78mm) para la simulación y visualización en 2D de datos importados provenientes del portal abierto de Sagulpa. El código representa la ocupación de diferentes aparcamientos públicos de Sagulpa en Las Palmas de Gran Canaria por unidad de tiempo en el mes de septiembre de 2025. 
 
-Lo que se genera es un mapa de la ciudad con la localización de cada parking y su respectivo flujo de entrada y salida de vehículos representado por un mapa de calor dinámico. 
+Lo que se genera es un mapa de la ciudad con la localización de cada parking y su respectivo flujo de entrada y salida de vehículos representado por un mapa de calor dinámico.
+
+A continuación, se adjunta una animación en formato GIF como demo y un enlace para el [vídeo en YouTube](https://youtu.be/hty1UcnnosE). 
+
+![Foto](src/resources/dataVisualization.gif)
 
 
 ## Funcionalidades
