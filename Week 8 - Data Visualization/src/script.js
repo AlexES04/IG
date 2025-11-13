@@ -79,7 +79,7 @@ function init() {
     });
 
   const tx1 = new THREE.TextureLoader().load(
-    "src/mapaLPGC.png",
+    "src/resources/mapaLPGC.png",
 
     function (texture) {
       const txaspectRatio = texture.image.width / texture.image.height;
@@ -94,7 +94,7 @@ function init() {
 
       texturacargada = true;
 
-      fetch("src/geolocalizacionParking.csv")
+      fetch("src/resources/geolocalizacionParking.csv")
         .then((response) => {
           if (!response.ok) {
             throw new Error("Error: " + response.statusText);
@@ -108,7 +108,7 @@ function init() {
           console.error("Error al cargar el archivo:", error);
         });
 
-      fetch("src/parkingSeptiembre2025.csv")
+      fetch("src/resources/parkingSeptiembre2025.csv")
         .then((response) => {
           if (!response.ok) {
             throw new Error("Error: " + response.statusText);
