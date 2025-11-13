@@ -3,6 +3,10 @@ import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
 import h337 from "heatmap.js";
 
+const locationDataFile = "src/resources/geolocalizacionParking.csv";
+const registerDataFile = "src/resources/parkingSeptiembre2025.csv";
+const textureFile = "src/resources/mapaLPGC.png";
+
 let scene, renderer, camera, camcontrols;
 let mapa,
   mapsx,
@@ -79,7 +83,7 @@ function init() {
     });
 
   const tx1 = new THREE.TextureLoader().load(
-    "src/resources/mapaLPGC.png",
+    textureFile,
 
     function (texture) {
       const txaspectRatio = texture.image.width / texture.image.height;
@@ -94,7 +98,7 @@ function init() {
 
       texturacargada = true;
 
-      fetch("src/resources/geolocalizacionParking.csv")
+      fetch(locationDataFile)
         .then((response) => {
           if (!response.ok) {
             throw new Error("Error: " + response.statusText);
@@ -108,7 +112,7 @@ function init() {
           console.error("Error al cargar el archivo:", error);
         });
 
-      fetch("src/resources/parkingSeptiembre2025.csv")
+      fetch(registerDataFile)
         .then((response) => {
           if (!response.ok) {
             throw new Error("Error: " + response.statusText);
