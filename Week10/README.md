@@ -14,8 +14,14 @@ A continuación, se adjunta una animación en formato GIF y un enlace para el [v
 ![Proyecto Fragment Shader en GIF](fragmentShader.gif)
 
 ## _Fragment Shader_
+El _Fragment Shader_ (o shader de fragmentos) es el trozo de código que se ejecuta para cada píxel de cada fragmento con el objetivo de calcular y rellenar el color en cada píxel. En este caso, se interactúa directamente con este código para pintar a conciencia un plano, que actúa como fondo, y esferas, que se sitúan delante del plano.
+
+En el código, se crean varias funciones (7 en total) y cada una posee un código distinto, actuando así como un _Fragment Shader_ diferente para cada objeto al que se le aplique.
+
 ### Definiciones generales
-Para cada _Fragment Shader_ se especifica la siguiente configuración, que fuerza el uso de precisión media para decimales en dispositivos móviles o navegadores.
+Hay algunas definiciones y parámetros generales que se han incluido en cada _Fragment Shader_ creado.
+
+El siguiente bloque de definición, fuerza el uso de precisión media para decimales en dispositivos móviles y navegadores.
 ```js
 #ifdef GL_ES
 precision mediump float;
@@ -28,8 +34,9 @@ uniform vec2 u_resolution;
 uniform vec2 u_mouse;
 uniform float u_time;
 ```
+Con las variables anteriores, se consigue atribuir un color distinto al fondo dependiendo del tiempo y de la posición del ratón.
 
-Se normalizan las coordenadas de (-1, -1) a (1, 1) con la siguiente línea, convirtiendo el punt (0, 0) en el centro de la imagen.
+Por último, se normalizan las coordenadas de (-1, -1) a (1, 1) con la siguiente línea, convirtiendo el punto (0, 0) en el centro de la imagen.
 ``vec2 st = vUv * 2.0 - 1.0;``
 
 ### Fondo animado
@@ -38,9 +45,9 @@ Se normalizan las coordenadas de (-1, -1) a (1, 1) con la siguiente línea, conv
 ### Símbolo de radiación
 
 ### Banderas de países
-Para las banderas de los países, simplemente, se calculan los puntos que se encuentran en un rango para pintarlos de un color determinado. Por ejemplo, en la bandera de España, los puntos del eje Y (``vUv.y``) que estén en el primer tercio (``st.y < 0.33``), se pinta de rojo.
+Para las banderas de los países, simplemente, se calculan los puntos que se encuentran en un rango para pintarlos de un color determinado. Por ejemplo, en la bandera de España, los puntos del eje Y (``vUv.y``) que estén en el primer tercio (``st.y < 0.33``), se pintan de rojo.
 
-Para las banderas con franjas horizontales, como la de Canarias, se usa la coordenada X en vez de la Y (``st.x < 0.33``). Aunque también se podría pintar por franjas verticales, para que se pinten anillos, y luego girarlo.
+Para las banderas con franjas horizontales, como la de Canarias, se usa la coordenada X en vez de la Y (``st.x < 0.33``). No obstante, también existe la opción de pintar el objeto por franjas verticales, para que se pinten anillos, y luego girarlo para dar sensación de franjas verticales.
 
 
 ## Tecnologías
