@@ -7,8 +7,6 @@
 ## Descripción
 En esta práctica, se propone un dibujado con el _Fragment Shader_ en [Codesandbox](https://codesandbox.io/p/sandbox/ig2526-s9-forked-ksdz6t) para interactuar y practicar con las posibilidades de diseño o dibujado del recurso. Lo que se presenta es un fondo animado frente a 6 esferas cada una con una textura distinta: una con símbolo de radiación y las otras 5 con banderas de países.
 
-
-
 A continuación, se adjunta una animación en formato GIF y un enlace para el [vídeo en YouTube](https://youtu.be). 
 
 ![Proyecto Fragment Shader en GIF](fragmentShader.gif)
@@ -40,9 +38,21 @@ Por último, se normalizan las coordenadas de (-1, -1) a (1, 1) con la siguiente
 ``vec2 st = vUv * 2.0 - 1.0;``
 
 ### Fondo animado
+El _Fragment Shader_ retornado por la función ``backgroundFragmentShader()`` se aplica sobre un plano y actúa de fondo. La textura que se consigue es un círculo que se despieza en 8 partes que se dispersan una distancia dada por la variable ``float max_separation``. Todas las piezas llegan a formar una figura con un centro vacío en forma de círculo. Finalmente, cada pieza vuelve a su posición original formando de nuevo la figura inicial.
 
+Para controlar el movimiento de las piezas, se declaran, entre otras, las siguientes variables para controlar los siguientes aspectos:
+- Tiempo que tarda en irse cada pieza: ``float move_duration``.
+- Retraso entre cada pieza para conseguir un efecto de ola: ``float stagger_delay``.
+- Tiempo de pausa cuando el círculo está completamente despiezado: ``float hold_time``.
+- Tiempo de pausa cuando el círculo está completo: ``float pause_closed``.
+
+Por último, el color de la figura dependerá de la posición del ratón en la ventana y el tiempo transcurrido:
+``vec3 final_color = vec3(u_mouse.x, u_mouse.y, abs(sin(u_time))) * circle``;
 
 ### Símbolo de radiación
+El _Fragment Shader_ retornado por la función ``radiationSymbolFragmentShader()`` se aplica sobre una esfera. Básicamente, la función genera el símbolo de peligro radioactivo cuyas aspas giran consecusivamente sobre el centro. 
+
+Para aplicar la rotación contando con el ángulo, primero se calcula este (``float a = atan(st.y, st.x)``) y luego se le aplica la animación de rotación moviéndolo (``a += u_time * 0.5``). Luego, las aspas que conforman el símbolo están separadas por 120º (``float sector = 2.0 * PI / 3.0``). En este caso, no se dibujan las 3 aspas, sino que se dibuja 1 que se repite cada 120º. Finalmente, se pinta de color amarillo el fondo y el símbolo de negro.
 
 ### Banderas de países
 Para las banderas de los países, simplemente, se calculan los puntos que se encuentran en un rango para pintarlos de un color determinado. Por ejemplo, en la bandera de España, los puntos del eje Y (``vUv.y``) que estén en el primer tercio (``st.y < 0.33``), se pintan de rojo.
@@ -58,4 +68,4 @@ Las tecnologías y librerías usadas son las siguientes:
 
 
 ## Uso de IA
-La Inteligencia artificial se ha usado para solucionar diversos errores a lo largo del proceso de desarrollo (sobre todo en la importación de los datos), para planteamiento de dudas puntuales con respecto al _Fragment Shader_ y para posibles ideas para la realización del proyecto.
+La Inteligencia artificial se ha usado para planteamiento de dudas puntuales con respecto al _Fragment Shader_ y para llevar las ideas al código, como la textura que se ha generado para el fondo y la del símbolo de radiación.

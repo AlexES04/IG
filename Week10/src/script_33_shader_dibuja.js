@@ -154,50 +154,34 @@ function backgroundFragmentShader() {
   #define PI 3.14159265358979323846
   
   void main() {
-      // 1. Normalización de coordenadas
       vec2 st = vUv * 2.0 - 1.0;
   
-      // 2. Cálculo de Ángulos y Sectores
       float angle = atan(st.y, st.x); 
       angle = mod(angle + PI * 2.0, PI * 2.0);
   
       float num_divisions = 8.0; 
       float sector_index = floor(angle / (PI * 2.0 / num_divisions));
   
-      // --- 3. LÓGICA DE TIEMPO Y COREOGRAFÍA ---
-      
-      // Configuración de velocidades
-      float move_duration = 0.6;   // Cuánto tarda una pieza en llegar a su destino
-      float stagger_delay = 0.15;  // Retraso entre que sale una pieza y la siguiente
-      float hold_time = 0.5;       // Tiempo de espera cuando todas están fuera
-      float pause_closed = 0.5;    // Tiempo de espera cuando el círculo está cerrado
+      float move_duration = 0.6;
+      float stagger_delay = 0.15;
+      float hold_time = 0.5; 
+      float pause_closed = 0.5;
   
-      // Calcular cuánto dura toda la secuencia de apertura
-      // (El tiempo que tarda la última pieza en empezar + su duración de movimiento)
       float total_open_sequence = (num_divisions * stagger_delay) + move_duration;
       
-      // Duración total del bucle (Ida + Espera + Vuelta + Espera Cerrado)
       float total_cycle = total_open_sequence + hold_time + total_open_sequence + pause_closed;
   
-      // Tiempo local dentro del ciclo actual
       float t = mod(u_time, total_cycle);
   
-      // Tiempo específico para ESTA pieza
       float my_start_out = sector_index * stagger_delay;
       float my_start_in  = total_open_sequence + hold_time + (sector_index * stagger_delay);
   
-      // Calculamos el movimiento de IDA (0.0 a 1.0)
       float go_out = smoothstep(my_start_out, my_start_out + move_duration, t);
       
-      // Calculamos el movimiento de VUELTA (0.0 a 1.0)
-      // Restamos la vuelta a la ida. 
-      // Si ya fuimos (1) y volvemos (1), el resultado es 0 (posición original).
       float come_back = smoothstep(my_start_in, my_start_in + move_duration, t);
   
-      // Posición actual (0.0 = centro, 1.0 = fuera)
       float position_0_to_1 = go_out - come_back;
   
-      // --- 4. APLICAR DESPLAZAMIENTO ---
       
       float max_separation = 1.2; 
       float offset_factor = position_0_to_1 * max_separation; 
@@ -205,14 +189,11 @@ function backgroundFragmentShader() {
       vec2 direction = normalize(st); 
       st -= direction * offset_factor; 
   
-      // 5. DIBUJAR
       float radius = 0.4; 
       float circle = smoothstep(radius + 0.01, radius - 0.01, length(st));
   
-      // Color blanco
       vec2 mouse = u_mouse/u_resolution;
       vec3 final_color = vec3(u_mouse.x, u_mouse.y, abs(sin(u_time))) * circle;
-  
       gl_FragColor = vec4(final_color, 1.0);
   }
 			  `;
@@ -224,63 +205,42 @@ function radiatonSymbolFragmentShader() {
   precision mediump float;
   #endif
 
-  // Ya no necesitamos u_resolution ni u_mouse necesariamente para fijar la textura
   uniform float u_time;
-  
-  // Recibimos las coordenadas de textura del Vertex Shader
   varying vec2 vUv;
 
   #define PI 3.14159265358979323846
 
   void main() {
-      // 1. Mapeo de Coordenadas UV
-      // vUv va de (0.0, 0.0) a (1.0, 1.0) alrededor de la esfera.
-      // Lo transformamos para que el centro (0.5, 0.5) sea (0.0, 0.0)
       vec2 st = vUv * 2.0 - 1.0;
       st *= 1.3;
 
-      // CORRECCIÓN DE ASPECTO PARA ESFERA:
-      // Las UVs de una esfera estiran la imagen (2:1 de ancho a alto).
-      // Multiplicamos x por 2.0 (aprox) para que el círculo se vea redondo y no ovalado,
-      // aunque esto depende de cómo Three.js genere la geometría UV.
       st.x *= 2.0; 
 
-      // 2. Coordenadas Polares
       float r = length(st);           
       float a = atan(st.y, st.x);     
       
-      // Animación: Rotación
       a += u_time * 0.5;
 
-      // 3. Simetría de 3 lados (Lógica idéntica a la anterior)
       float sector = 2.0 * PI / 3.0;
       float mod_a = mod(a, sector) - sector / 2.0;
 
-      // 4. Aspas
       float blade_width = PI / 3.0; 
       float blade_angular_mask = smoothstep(blade_width/2.0, (blade_width/2.0) - 0.01, abs(mod_a));
 
-      // Ajustamos los radios para que encajen bien en el mapeado de la esfera
       float inner_r = 0.2;
       float outer_r = 0.8;
-      // Un pequeño ajuste: si r > 1.0 se sale del mapa UV, cortamos el borde
       float blade_radial_mask = smoothstep(inner_r - 0.01, inner_r, r) * smoothstep(outer_r, outer_r - 0.01, r);
       
       float blades = blade_angular_mask * blade_radial_mask;
 
-      // 5. Círculo Central
       float center_radius = 0.12; 
       float center_dot = smoothstep(center_radius + 0.005, center_radius - 0.005, r);
 
-      // 6. Combinar
       float symbol = max(blades, center_dot);
 
-      // 7. Colores
       vec3 bg_color = vec3(0.95, 0.8, 0.0); 
       vec3 sym_color = vec3(0.1, 0.1, 0.1); 
-      
       vec3 color = mix(bg_color, sym_color, symbol);
-
       gl_FragColor = vec4(color, 1.0);
   }
   `;
@@ -295,21 +255,16 @@ function spainFlagFragmentShader() {
   varying vec2 vUv;
 
   void main() {
-      // Normalizar vUv para que Y vaya de 0 a 1 (de abajo a arriba)
       vec2 st = vUv;
 
-      vec3 color = vec3(0.0); // Color por defecto
+      vec3 color = vec3(0.0);
 
-      // Proporciones de la bandera de España: 1:2:1 (rojo:amarillo:rojo)
-      // Dividimos la altura total (1.0) en 4 partes
-      // La banda central (amarilla) ocupa 2 de esas 4 partes (0.5 de altura total)
-
-      if (st.y < 0.33) { // Banda inferior (0 a 0.25)
+      if (st.y < 0.33) {
           color = vec3(0.9, 0.0, 0.0); // Rojo
-      } else if (st.y < 0.66) { // Banda central (0.25 a 0.75)
-          color = vec3(1.0, 0.85, 0.0); // Amarillo
+      } else if (st.y < 0.66) {
+          color = vec3(1.0, 0.85, 0.0);
       } else { // Banda superior (0.75 a 1.0)
-          color = vec3(0.9, 0.0, 0.0); // Rojo
+          color = vec3(0.9, 0.0, 0.0);
       }
 
       gl_FragColor = vec4(color, 1.0);
@@ -326,21 +281,16 @@ function canaryFlagFragmentShader() {
   varying vec2 vUv;
 
   void main() {
-      // Usamos vUv.x para franjas verticales (tipo "gajos" de naranja).
-      // Esto divide la circunferencia de la esfera en 3 sectores.
       float x_coord = vUv.x;
 
       vec3 color = vec3(0.0);
 
-      // Proporciones de la bandera de Canarias: 3 bandas verticales.
-      // Orden: Blanco, Azul, Amarillo.
-      
-      if (x_coord < 1.1/3.0) { // Primer tercio (0 a 0.33)
-          color = vec3(1.0, 1.0, 1.0); // Blanco
-      } else if (x_coord < 1.9/3.0) { // Segundo tercio (0.33 a 0.66)
-          color = vec3(0.0, 0.2, 0.6); // Azul
+      if (x_coord < 1.1/3.0) {
+          color = vec3(1.0, 1.0, 1.0);
+      } else if (x_coord < 1.9/3.0) {
+          color = vec3(0.0, 0.2, 0.6);
       } else { // Tercer tercio (0.66 a 1.0)
-          color = vec3(1.0, 0.8, 0.0); // Amarillo
+          color = vec3(1.0, 0.8, 0.0);
       }
 
       gl_FragColor = vec4(color, 1.0);
@@ -357,21 +307,17 @@ function germanyFlagFragmentShader() {
   varying vec2 vUv;
 
   void main() {
-      // Normalizar vUv para que Y vaya de 0 a 1 (de abajo a arriba)
       vec2 st = vUv;
 
-      vec3 color = vec3(0.0); // Color por defecto
+      vec3 color = vec3(0.0);
 
-      // Proporciones de la bandera de Alemania: 3 bandas horizontales iguales (1/3 cada una)
-      // La vUv.y va de 0 a 1.
-
-      if (st.y < 1.0/3.0) { // Banda inferior (0 a 1/3)
-        color = vec3(1.0, 0.8, 0.0);// Negro
-      } else if (st.y < 2.0/3.0) { // Banda central (1/3 a 2/3)
-          color = vec3(0.8, 0.0, 0.0); // Rojo
-      } else { // Banda superior (2/3 a 1.0)
+      if (st.y < 1.0/3.0) {
+        color = vec3(1.0, 0.8, 0.0);
+      } else if (st.y < 2.0/3.0) {
+          color = vec3(0.8, 0.0, 0.0);
+      } else {
           
-          color = vec3(0.0, 0.0, 0.0);  // Oro (un amarillo más oscuro)
+          color = vec3(0.0, 0.0, 0.0);
       }
 
       gl_FragColor = vec4(color, 1.0);
@@ -388,19 +334,15 @@ function hungaryFlagFragmentShader() {
   varying vec2 vUv;
 
   void main() {
-      // Usamos vUv.y para franjas horizontales estándar
       vec2 st = vUv;
       vec3 color = vec3(0.0);
 
-      // Proporción 1:1:1 (Verde abajo, Blanco medio, Rojo arriba)
-      // vUv.y va de 0 (abajo) a 1 (arriba)
-
       if (st.y < 1.0/3.0) { 
-          color = vec3(0.25, 0.5, 0.3); // Verde bosque
+          color = vec3(0.25, 0.5, 0.3);
       } else if (st.y < 2.0/3.0) { 
-          color = vec3(1.0, 1.0, 1.0); // Blanco
+          color = vec3(1.0, 1.0, 1.0);
       } else { 
-          color = vec3(0.8, 0.2, 0.2); // Rojo
+          color = vec3(0.8, 0.2, 0.2);
       }
 
       gl_FragColor = vec4(color, 1.0);
@@ -417,18 +359,15 @@ function netherlandsFlagFragmentShader() {
   varying vec2 vUv;
 
   void main() {
-      // Usamos vUv.y para franjas horizontales estándar
       vec2 st = vUv;
       vec3 color = vec3(0.0);
 
-      // Proporción 1:1:1 (Azul abajo, Blanco medio, Rojo arriba)
-      
       if (st.y < 1.0/3.0) { 
-          color = vec3(0.1, 0.2, 0.6); // Azul cobalto
+          color = vec3(0.1, 0.2, 0.6);
       } else if (st.y < 2.0/3.0) { 
-          color = vec3(1.0, 1.0, 1.0); // Blanco
+          color = vec3(1.0, 1.0, 1.0);
       } else { 
-          color = vec3(0.7, 0.1, 0.1); // Rojo bermellón
+          color = vec3(0.7, 0.1, 0.1);
       }
 
       gl_FragColor = vec4(color, 1.0);
