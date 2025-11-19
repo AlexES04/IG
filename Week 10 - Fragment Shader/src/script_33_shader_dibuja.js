@@ -128,10 +128,10 @@ function animationLoop() {
 
 function vertexShader() {
   return `
-    varying vec2 vUv; // Cambiamos a vec2 porque las texturas son 2D
+    varying vec2 vUv;
     
     void main() {
-      vUv = uv; // 'uv' es un atributo interno de Three.js
+      vUv = uv;
       
       vec4 modelViewPosition = modelViewMatrix * vec4(position, 1.0);
       gl_Position = projectionMatrix * modelViewPosition; 
