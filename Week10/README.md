@@ -7,9 +7,13 @@
 ## Descripción
 En esta práctica, se propone un dibujado con el _Fragment Shader_ en [Codesandbox](https://codesandbox.io/p/sandbox/ig2526-s9-forked-ksdz6t) para interactuar y practicar con las posibilidades de diseño o dibujado del recurso. Lo que se presenta es un fondo animado frente a 6 esferas cada una con una textura distinta: una con símbolo de radiación y las otras 5 con banderas de países.
 
-A continuación, se adjunta una animación en formato GIF y un enlace para el [vídeo en YouTube](https://youtu.be). 
+A continuación, se adjunta una animación en formato GIF.
 
-![Proyecto Fragment Shader en GIF](fragmentShader.gif)
+![Proyecto Fragment Shader en GIF](resources/fragmentShader.gif)
+
+También se incluye una versión en _tiny code_ de los dos _Fragment Shader_ (el fondo animado y el símbolo de radiación). No se incluyen las banderas debido a su simplicidad:
+- [Fondo animado](resources/background.js)
+- [Símbolo radiación](resources/radiationSymbol.js)
 
 ## _Fragment Shader_
 El _Fragment Shader_ (o shader de fragmentos) es el trozo de código que se ejecuta para cada píxel de cada fragmento con el objetivo de calcular y rellenar el color en cada píxel. En este caso, se interactúa directamente con este código para pintar a conciencia un plano, que actúa como fondo, y esferas, que se sitúan delante del plano.
@@ -46,8 +50,12 @@ Para controlar el movimiento de las piezas, se declaran, entre otras, las siguie
 - Tiempo de pausa cuando el círculo está completamente despiezado: ``float hold_time``.
 - Tiempo de pausa cuando el círculo está completo: ``float pause_closed``.
 
+La variable ``total_open_sequence`` indica el tiempo que transucrre entre el inicio del movimiento de la primera pieza hasta el final del movimiento de la última. La variable ``total_cycle`` indica el tiempo total que transcurre en la animación, teniendo en cuenta las paradas al inicio y al final. Además, se consigue un bucle de tiempo gracias a ``float t``, ya que se utiliza el módulo entre ``u_time`` y ``total_cycle`` para que, cuando la animación llegue al final, empiece de nuevo desde 0.
+
 Por último, el color de la figura dependerá de la posición del ratón en la ventana y el tiempo transcurrido:
 ``vec3 final_color = vec3(u_mouse.x, u_mouse.y, abs(sin(u_time))) * circle``;
+
+Se destaca el uso de la función ``smoothstep`` que logra un suavizado (_antialiasing_), no como el ``step`` normal.
 
 ### Símbolo de radiación
 El _Fragment Shader_ retornado por la función ``radiationSymbolFragmentShader()`` se aplica sobre una esfera. Básicamente, la función genera el símbolo de peligro radioactivo cuyas aspas giran consecusivamente sobre el centro. 
@@ -59,6 +67,10 @@ Para las banderas de los países, simplemente, se calculan los puntos que se enc
 
 Para las banderas con franjas horizontales, como la de Canarias, se usa la coordenada X en vez de la Y (``st.x < 0.33``). No obstante, también existe la opción de pintar el objeto por franjas verticales, para que se pinten anillos, y luego girarlo para dar sensación de franjas verticales.
 
+### Motivación
+Los _Fragment Shader_ desarrollados han surgido de los ejemplos mostrados en el github con los guiones de prácticas propuestos y los ejemplos mostrados en [_The Book of Shaders_](https://thebookofshaders.com/?lan=es). Inicialmente, se planteaba únicamente el fondo animado, pero, cuando se finalizó, surgió la idea de crear símbolos de peligro. 
+
+No obstante, como algunos parecían bastante avanzados, se optó por algo más simple: añadir banderas de países. De esta manera, la propuesta consta de, en última instancia, tres propuestas diferentes. 
 
 ## Tecnologías
 Las tecnologías y librerías usadas son las siguientes:
@@ -68,4 +80,4 @@ Las tecnologías y librerías usadas son las siguientes:
 
 
 ## Uso de IA
-La Inteligencia artificial se ha usado para planteamiento de dudas puntuales con respecto al _Fragment Shader_ y para llevar las ideas al código, como la textura que se ha generado para el fondo y la del símbolo de radiación.
+La Inteligencia artificial se ha usado para planteamiento de dudas con respecto al _Fragment Shader_ y su desarrollo. Principalmente, ha servido para llevar las ideas al código y obtener como resultado la textura que se ha generado para el fondo y la del símbolo de radiación. Por último, también se ha utilizado para pasar el código a tinyCode.
