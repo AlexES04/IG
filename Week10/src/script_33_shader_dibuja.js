@@ -10,12 +10,12 @@ let uniforms;
 let objetos = [];
 
 const data = {
-  radiation: radiatonSymbolFragmentShader(),
   spain: spainFlagFragmentShader(),
   canary: canaryFlagFragmentShader(),
+  germany: germanyFlagFragmentShader(),
+  rusia: rusiaFlagFragmentShader(),
   hungary: hungaryFlagFragmentShader(),
   netherlands: netherlandsFlagFragmentShader(),
-  germany: germanyFlagFragmentShader(),
 };
 
 init();
@@ -168,7 +168,6 @@ function backgroundFragmentShader() {
       float pause_closed = 0.5;
   
       float total_open_sequence = (num_divisions * stagger_delay) + move_duration;
-      
       float total_cycle = total_open_sequence + hold_time + total_open_sequence + pause_closed;
   
       float t = mod(u_time, total_cycle);
@@ -199,48 +198,27 @@ function backgroundFragmentShader() {
 			  `;
 }
 
-function radiatonSymbolFragmentShader() {
+function rusiaFlagFragmentShader() {
   return `
   #ifdef GL_ES
   precision mediump float;
   #endif
 
-  uniform float u_time;
   varying vec2 vUv;
 
-  #define PI 3.14159265358979323846
-
   void main() {
-      vec2 st = vUv * 2.0 - 1.0;
-      st *= 1.3;
+      vec2 st = vUv;
 
-      st.x *= 2.0; 
+      vec3 color = vec3(0.0);
 
-      float r = length(st);           
-      float a = atan(st.y, st.x);     
-      
-      a += u_time * 0.5;
+      if (st.y < 0.33) {
+          color = vec3(0.9, 0.0, 0.0);
+      } else if (st.y < 0.66) {
+          color = vec3(0.1, 0.2, 0.6);
+      } else {
+          color = vec3(1.0, 1.0, 1.0);
+      }
 
-      float sector = 2.0 * PI / 3.0;
-      float mod_a = mod(a, sector) - sector / 2.0;
-
-      float blade_width = PI / 3.0; 
-      float blade_angular_mask = smoothstep(blade_width/2.0, (blade_width/2.0) - 0.01, abs(mod_a));
-
-      float inner_r = 0.2;
-      float outer_r = 0.8;
-      float blade_radial_mask = smoothstep(inner_r - 0.01, inner_r, r) * smoothstep(outer_r, outer_r - 0.01, r);
-      
-      float blades = blade_angular_mask * blade_radial_mask;
-
-      float center_radius = 0.12; 
-      float center_dot = smoothstep(center_radius + 0.005, center_radius - 0.005, r);
-
-      float symbol = max(blades, center_dot);
-
-      vec3 bg_color = vec3(0.95, 0.8, 0.0); 
-      vec3 sym_color = vec3(0.1, 0.1, 0.1); 
-      vec3 color = mix(bg_color, sym_color, symbol);
       gl_FragColor = vec4(color, 1.0);
   }
   `;

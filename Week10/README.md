@@ -5,15 +5,14 @@
 **Fecha:** 19 de Noviembre del 2025
 
 ## Descripción
-En esta práctica, se propone un dibujado con el _Fragment Shader_ en [Codesandbox](https://codesandbox.io/p/sandbox/ig2526-s9-forked-ksdz6t) para interactuar y practicar con las posibilidades de diseño o dibujado del recurso. Lo que se presenta es un fondo animado frente a 6 esferas cada una con una textura distinta: una con símbolo de radiación y las otras 5 con banderas de países.
+En esta práctica, se propone un dibujado con el _Fragment Shader_ en [Codesandbox](https://codesandbox.io/p/sandbox/ig2526-s9-forked-ksdz6t) para interactuar y practicar con las posibilidades de diseño o dibujado del recurso. Lo que se presenta es un fondo animado frente a 6 esferas cada una con una textura distinta representando a la bandera de un país.
 
 A continuación, se adjunta una animación en formato GIF.
 
 ![Proyecto Fragment Shader en GIF](resources/fragmentShader.gif)
 
-También se incluye una versión en _tiny code_ de los dos _Fragment Shader_ (el fondo animado y el símbolo de radiación). No se incluyen las banderas debido a su simplicidad:
+También se incluye una versión en _tiny code_ de los dos _Fragment Shader_ (el fondo animado). No se incluyen las banderas debido a su simplicidad:
 - [Fondo animado](resources/background.js)
-- [Símbolo radiación](resources/radiationSymbol.js)
 
 ## _Fragment Shader_
 El _Fragment Shader_ (o shader de fragmentos) es el trozo de código que se ejecuta para cada píxel de cada fragmento con el objetivo de calcular y rellenar el color en cada píxel. En este caso, se interactúa directamente con este código para pintar a conciencia un plano, que actúa como fondo, y esferas, que se sitúan delante del plano.
@@ -57,11 +56,6 @@ Por último, el color de la figura dependerá de la posición del ratón en la v
 
 Se destaca el uso de la función ``smoothstep`` que logra un suavizado (_antialiasing_), no como el ``step`` normal.
 
-### Símbolo de radiación
-El _Fragment Shader_ retornado por la función ``radiationSymbolFragmentShader()`` se aplica sobre una esfera. Básicamente, la función genera el símbolo de peligro radioactivo cuyas aspas giran consecusivamente sobre el centro. 
-
-Para aplicar la rotación contando con el ángulo, primero se calcula este (``float a = atan(st.y, st.x)``) y luego se le aplica la animación de rotación moviéndolo (``a += u_time * 0.5``). Luego, las aspas que conforman el símbolo están separadas por 120º (``float sector = 2.0 * PI / 3.0``). En este caso, no se dibujan las 3 aspas, sino que se dibuja 1 que se repite cada 120º. Finalmente, se pinta de color amarillo el fondo y el símbolo de negro.
-
 ### Banderas de países
 Para las banderas de los países, simplemente, se calculan los puntos que se encuentran en un rango para pintarlos de un color determinado. Por ejemplo, en la bandera de España, los puntos del eje Y (``vUv.y``) que estén en el primer tercio (``st.y < 0.33``), se pintan de rojo.
 
@@ -70,7 +64,7 @@ Para las banderas con franjas horizontales, como la de Canarias, se usa la coord
 ### Motivación
 Los _Fragment Shader_ desarrollados han surgido de los ejemplos mostrados en el github con los guiones de prácticas propuestos y los ejemplos mostrados en [_The Book of Shaders_](https://thebookofshaders.com/?lan=es). Inicialmente, se planteaba únicamente el fondo animado, pero, cuando se finalizó, surgió la idea de crear símbolos de peligro. 
 
-No obstante, como algunos parecían bastante avanzados, se optó por algo más simple: añadir banderas de países. De esta manera, la propuesta consta de, en última instancia, tres propuestas diferentes. 
+No obstante, por la complejidad de algunos símbolos de peligro, se decidió optar por algo más simple, que acabó en añadir banderas de países de manera sencilla. De esta manera, la propuesta terminó constando de, en última instancia, dos propuestas diferentes: fondo y banderas.
 
 ## Tecnologías
 Las tecnologías y librerías usadas son las siguientes:
@@ -80,4 +74,4 @@ Las tecnologías y librerías usadas son las siguientes:
 
 
 ## Uso de IA
-La Inteligencia artificial se ha usado para planteamiento de dudas con respecto al _Fragment Shader_ y su desarrollo. Principalmente, ha servido para llevar las ideas al código y obtener como resultado la textura que se ha generado para el fondo y la del símbolo de radiación. Por último, también se ha utilizado para pasar el código a tinyCode.
+La Inteligencia artificial se ha usado para planteamiento de dudas con respecto al _Fragment Shader_ y su desarrollo. Principalmente, ha servido para llevar las ideas al código y obtener como resultado la textura que se ha generado para el fondo. Por último, también se ha utilizado para pasar el código a tinyCode.
