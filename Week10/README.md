@@ -2,7 +2,7 @@
 
 **Autor:** Alejandro de Olózaga Ramírez
 
-**Fecha:** 19 de Noviembre del 2025
+**Fecha:** 20 de Noviembre del 2025
 
 ## Descripción
 En esta práctica, se propone un dibujado con el _Fragment Shader_ en [Codesandbox](https://codesandbox.io/p/sandbox/ig2526-s9-forked-ksdz6t) para interactuar y practicar con las posibilidades de diseño o dibujado del recurso. Lo que se presenta es un fondo animado frente a 6 esferas cada una con una textura distinta representando a la bandera de un país.
