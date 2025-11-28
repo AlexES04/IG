@@ -1,8 +1,10 @@
 import * as THREE from "three";
-import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
 import Ammo from "ammojs-typed";
-import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader";
 import TWEEN from "@tweenjs/tween.js";
+import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader";
+import { OBJLoader } from "three/examples/jsm/loaders/OBJLoader";
+import { MTLLoader } from "three/examples/jsm/loaders/MTLLoader";
+import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
 import { Water } from "three/examples/jsm/objects/Water.js";
 
 let camera, controls, scene, renderer;
@@ -63,7 +65,7 @@ function initGraphics() {
   );
   scene = new THREE.Scene();
   scene.background = new THREE.Color(0xbfd1e5);
-  camera.position.set(-14, 8, 16);
+  camera.position.set(-40, 10, -20);
 
   renderer = new THREE.WebGLRenderer();
   renderer.setPixelRatio(window.devicePixelRatio);
@@ -72,7 +74,7 @@ function initGraphics() {
   document.body.appendChild(renderer.domElement);
 
   controls = new OrbitControls(camera, renderer.domElement);
-  controls.target.set(0, 2, 0);
+  controls.target.set(3, 4, 7);
   controls.update();
 
   textureLoader = new THREE.TextureLoader();
@@ -152,7 +154,8 @@ function createObjects() {
     quat,
     new THREE.MeshBasicMaterial({ visible: false })
   );
-  const waterGeometry = new THREE.PlaneGeometry(100, 100);
+
+  const waterGeometry = new THREE.CircleGeometry(100, 100);
 
   // Cargamos una textura de "Normal Map" para darle relieve al agua
   // Usamos una url estándar de los ejemplos de Three.js
@@ -185,6 +188,8 @@ function createObjects() {
   // createWall();
   loadPirateShip();
   loadBarrel();
+  loadCanon();
+  loadIsland();
 }
 
 function createWall() {
@@ -436,7 +441,6 @@ function loadPirateShip() {
         color: 0xff0000,
       })
     );
-
     container.add(shipModel);
 
     shipModel.position.x = -center.x;
@@ -469,6 +473,131 @@ function loadPirateShip() {
     console.log(
       "Barco cargado con hitbox reducida al " + hitboxFactor * 100 + "%"
     );
+  });
+}
+
+function loadCanon() {
+  const loader = new GLTFLoader();
+  const path = "src/libs/canon.gltf";
+
+  console.log("Cargando cañón...");
+
+  loader.load(path, function (gltf) {
+    const model = gltf.scene;
+
+    // Sombras
+    model.traverse(function (child) {
+      if (child.isMesh) {
+        child.castShadow = true;
+        child.receiveShadow = true;
+      }
+    });
+
+    // Calcular Bounding Box
+    const box = new THREE.Box3().setFromObject(model);
+    const size = new THREE.Vector3();
+    box.getSize(size);
+    const center = new THREE.Vector3();
+    box.getCenter(center);
+
+    // Contenedor invisible
+    const container = new THREE.Mesh(
+      new THREE.BoxGeometry(size.x, size.y, size.z),
+      new THREE.MeshBasicMaterial({ visible: false })
+    );
+    container.add(model);
+    model.position.copy(center).multiplyScalar(-1);
+
+    // --- POSICIONAMIENTO MATEMÁTICO ---
+    const mass = 0; // Estático
+
+    // La plataforma marrón está en Y=4 con altura 1 -> Superficie = 4.5
+    // El cañón se coloca en 4.5 + mitad de su altura
+    const startPos = new THREE.Vector3(-23, 3.0 + size.y * 0.5, 7);
+
+    // Rotación (opcional, ajusta si mira al revés)
+    const startQuat = new THREE.Quaternion();
+    startQuat.setFromEuler(new THREE.Euler(0, Math.PI / 1.7, 0)); // Rotar 90 grados
+
+    const shape = new Ammo.btBoxShape(
+      new Ammo.btVector3(size.x * 0.5, size.y * 0.5, size.z * 0.5)
+    );
+    shape.setMargin(margin);
+
+    createRigidBody(container, shape, mass, startPos, startQuat);
+
+    // Animación entrada
+    container.scale.set(0, 0, 0);
+    new TWEEN.Tween(container.scale)
+      .to({ x: 1, y: 1, z: 1 }, 1500)
+      .easing(TWEEN.Easing.Elastic.Out)
+      .start();
+
+    console.log("Cañón cargado sobre la plataforma.");
+  });
+}
+
+function loadIsland() {
+  const loader = new GLTFLoader();
+  const path = "src/libs/scene.gltf";
+
+  console.log("Cargando isla...");
+
+  loader.load(path, function (gltf) {
+    const model = gltf.scene;
+
+    // Sombras
+    model.traverse(function (child) {
+      if (child.isMesh) {
+        child.castShadow = true;
+        child.receiveShadow = true;
+      }
+    });
+
+    const finalScale = 50;
+    model.scale.set(finalScale, finalScale, finalScale);
+
+    // Calcular Bounding Box
+    const box = new THREE.Box3().setFromObject(model);
+    const size = new THREE.Vector3();
+    box.getSize(size);
+    const center = new THREE.Vector3();
+    box.getCenter(center);
+
+    // Contenedor invisible
+    const container = new THREE.Mesh(
+      new THREE.BoxGeometry(size.x, size.y, size.z),
+      new THREE.MeshBasicMaterial({ visible: false })
+    );
+    container.add(model);
+    model.position.copy(center).multiplyScalar(-1);
+
+    // --- POSICIONAMIENTO MATEMÁTICO ---
+    const mass = 0; // Estático
+
+    // La plataforma marrón está en Y=4 con altura 1 -> Superficie = 4.5
+    // El cañón se coloca en 4.5 + mitad de su altura
+    const startPos = new THREE.Vector3(-20, 2.0 + size.y * 0.5, 7);
+
+    // Rotación (opcional, ajusta si mira al revés)
+    const startQuat = new THREE.Quaternion();
+    startQuat.setFromEuler(new THREE.Euler(0, Math.PI / 2, 0)); // Rotar 90 grados
+
+    const shape = new Ammo.btBoxShape(
+      new Ammo.btVector3(size.x * 0.5, size.y * 0.5, size.z * 0.5)
+    );
+    shape.setMargin(margin);
+
+    createRigidBody(container, shape, mass, startPos, startQuat);
+
+    // Animación entrada
+    container.scale.set(0, 0, 0);
+    new TWEEN.Tween(container.scale)
+      .to({ x: 1, y: 1, z: 1 }, 1500)
+      .easing(TWEEN.Easing.Elastic.Out)
+      .start();
+
+    console.log("Cañón cargado sobre la plataforma.");
   });
 }
 
