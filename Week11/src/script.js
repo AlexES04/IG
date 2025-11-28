@@ -10,12 +10,45 @@ import { Water } from "three/examples/jsm/objects/Water.js";
 let camera, controls, scene, renderer;
 let textureLoader;
 
+const WATER_TEXTURE =
+  "https://raw.githubusercontent.com/mrdoob/three.js/master/examples/textures/water/Water_1_M_Normal.jpg";
+
+const Ship = {
+  MODEL: "src/libs/ship.glb",
+  MASS: 0,
+  POSITION: new THREE.Vector3(0, -15, 0),
+  ROTATION: new THREE.Euler(0, 0, 0),
+  SCALE: new THREE.Vector3(1, 1, 1),
+};
+
+const Canon = {
+  MODEL: "src/libs/canon.gltf",
+  MASS: 0,
+  POSITION: new THREE.Vector3(-23, 3.1, 7),
+  ROTATION: new THREE.Euler(0, Math.PI / 1.7, 0),
+  SCALE: new THREE.Vector3(1, 1, 1),
+  ISCANON: true,
+};
+
+const Island = {
+  MODEL: "src/libs/scene.gltf",
+  MASS: 0,
+  POSITION: new THREE.Vector3(-20, 3.0, 7),
+  ROTATION: new THREE.Euler(0, Math.PI / 2.0, 0),
+  SCALE: new THREE.Vector3(50, 50, 50),
+};
+
 let water;
 const clock = new THREE.Clock();
 
-let shipMesh = null; // Referencia visual (ahora será el barril)
-let shipBody = null; // Referencia física
-let isShipBroken = false; // Estado para saber si ya explotó
+let shipMesh = null;
+let shipBody = null;
+let isShipBroken = false;
+
+// NUEVA: Referencia al cañón
+let canonContainer = null;
+let canonPosition = new THREE.Vector3();
+let canonDirection = new THREE.Vector3();
 
 const mouseCoords = new THREE.Vector2();
 const raycaster = new THREE.Raycaster();
@@ -28,35 +61,26 @@ let collisionConfiguration;
 let dispatcher;
 let broadphase;
 let solver;
-const margin = 0.05; //margen colisiones
+const margin = 0.05;
 
-// Objetos rígidos
 const rigidBodies = [];
 
 const pos = new THREE.Vector3();
 const quat = new THREE.Quaternion();
-//Variables temporales para actualizar transformación en el bucle
 let transformAux1;
 let tempBtVec3_1;
 
-//Inicialización ammo
 Ammo(Ammo).then(start);
 
 function start() {
-  //Elementos gráficos
   initGraphics();
-  //Elementos del mundo físico
   initPhysics();
-  //Objetos
   createObjects();
-  //Eventos
   initInput();
-
   animationLoop();
 }
 
 function initGraphics() {
-  //Cámara, escena, renderer y control de cámara
   camera = new THREE.PerspectiveCamera(
     60,
     window.innerWidth / window.innerHeight,
@@ -79,7 +103,6 @@ function initGraphics() {
 
   textureLoader = new THREE.TextureLoader();
 
-  //Luces
   const ambientLight = new THREE.AmbientLight(0x707070);
   scene.add(ambientLight);
 
@@ -91,201 +114,70 @@ function initGraphics() {
   light.shadow.camera.right = d;
   light.shadow.camera.top = d;
   light.shadow.camera.bottom = -d;
-
   light.shadow.camera.near = 2;
   light.shadow.camera.far = 50;
-
   light.shadow.mapSize.x = 1024;
   light.shadow.mapSize.y = 1024;
-
   scene.add(light);
-  //Redimensión de la ventana
+
   window.addEventListener("resize", onWindowResize);
 }
 
 function initPhysics() {
-  // Configuración Ammo
-  // Colisiones
   collisionConfiguration = new Ammo.btDefaultCollisionConfiguration();
-  // Gestor de colisiones convexas y cóncavas
   dispatcher = new Ammo.btCollisionDispatcher(collisionConfiguration);
-  // Colisión fase amplia
   broadphase = new Ammo.btDbvtBroadphase();
-  // Resuelve resricciones de reglas físicas como fuerzas, gravedad, etc.
   solver = new Ammo.btSequentialImpulseConstraintSolver();
-  // Crea en mundo físico
   physicsWorld = new Ammo.btDiscreteDynamicsWorld(
     dispatcher,
     broadphase,
     solver,
     collisionConfiguration
   );
-  // Establece gravedad
   physicsWorld.setGravity(new Ammo.btVector3(0, -gravityConstant, 0));
 
   transformAux1 = new Ammo.btTransform();
   tempBtVec3_1 = new Ammo.btVector3(0, 0, 0);
 }
 
-//Objeto con posición y orientación especificada con cuaternión
-function createObject(mass, halfExtents, pos, quat, material) {
-  const object = new THREE.Mesh(
-    new THREE.BoxGeometry(
-      halfExtents.x * 2,
-      halfExtents.y * 2,
-      halfExtents.z * 2
-    ),
-    material
-  );
-  object.position.copy(pos);
-  object.quaternion.copy(quat);
-}
-
 function createObjects() {
-  // Suelo
-  pos.set(0, -0.5, 0);
-  quat.set(0, 0, 0, 1);
-  const suelo = createBoxWithPhysics(
-    40,
-    1,
-    40,
-    0,
-    pos,
-    quat,
-    new THREE.MeshBasicMaterial({ visible: false })
+  loadWater();
+  loadObject(Ship.MODEL, Ship.MASS, Ship.POSITION, Ship.ROTATION, Ship.SCALE);
+  loadObject(
+    Canon.MODEL,
+    Canon.MASS,
+    Canon.POSITION,
+    Canon.ROTATION,
+    Canon.SCALE,
+    Canon.ISCANON
   );
-
-  const waterGeometry = new THREE.CircleGeometry(100, 100);
-
-  // Cargamos una textura de "Normal Map" para darle relieve al agua
-  // Usamos una url estándar de los ejemplos de Three.js
-  const flowMap = textureLoader.load(
-    "https://raw.githubusercontent.com/mrdoob/three.js/master/examples/textures/water/Water_1_M_Normal.jpg"
+  loadObject(
+    Island.MODEL,
+    Island.MASS,
+    Island.POSITION,
+    Island.ROTATION,
+    Island.SCALE
   );
-
-  flowMap.wrapS = THREE.RepeatWrapping;
-  flowMap.wrapT = THREE.RepeatWrapping;
-
-  water = new Water(waterGeometry, {
-    textureWidth: 512,
-    textureHeight: 512,
-    waterNormals: flowMap,
-    sunDirection: new THREE.Vector3(),
-    sunColor: 0xffffff,
-    waterColor: 0x001e0f, // Color azul oscuro/verdoso
-    distortionScale: 3.7,
-    fog: scene.fog !== undefined,
-  });
-
-  // Rotamos el plano para que esté horizontal
-  water.rotation.x = -Math.PI / 2;
-  // Lo subimos un pelín (y=0) para que tape la caja física invisible
-  water.position.y = 2.5;
-
-  scene.add(water);
-
-  // Muro
-  // createWall();
-  loadPirateShip();
-  loadBarrel();
-  loadCanon();
-  loadIsland();
 }
 
-function createWall() {
-  const brickMass = 0.5;
-  const brickLength = 1.2;
-  const brickDepth = 0.6;
-  const brickHeight = brickLength * 0.5;
-  const numBricksLength = 6;
-  const numBricksHeight = 8;
-  const z0 = -numBricksLength * brickLength * 0.5;
-  pos.set(0, brickHeight * 0.5, z0);
-  quat.set(0, 0, 0, 1);
-  for (let j = 0; j < numBricksHeight; j++) {
-    //Varía disposición entre filas pares e impares
-    const oddRow = j % 2 == 1;
-
-    pos.z = z0;
-    if (oddRow) {
-      pos.z -= 0.25 * brickLength;
-    }
-
-    const nRow = oddRow ? numBricksLength + 1 : numBricksLength;
-    //Compone fila
-    for (let i = 0; i < nRow; i++) {
-      let brickLengthCurrent = brickLength;
-      let brickMassCurrent = brickMass;
-
-      if (oddRow && (i == 0 || i == nRow - 1)) {
-        brickLengthCurrent *= 0.5;
-        brickMassCurrent *= 0.5;
-      }
-
-      const brick = createBoxWithPhysics(
-        brickDepth,
-        brickHeight,
-        brickLengthCurrent,
-        brickMassCurrent,
-        pos,
-        quat,
-        createMaterial()
-      );
-      brick.castShadow = true;
-      brick.receiveShadow = true;
-
-      if (oddRow && (i == 0 || i == nRow - 2)) {
-        pos.z += 0.75 * brickLength;
-      } else {
-        pos.z += brickLength;
-      }
-    }
-    pos.y += brickHeight;
-  }
-}
-
-function createBoxWithPhysics(sx, sy, sz, mass, pos, quat, material) {
-  const object = new THREE.Mesh(
-    new THREE.BoxGeometry(sx, sy, sz, 1, 1, 1),
-    material
-  );
-  //Estructura geométrica de colisión
-  //Crea caja orientada en el espacio, especificando dimensiones
-  const shape = new Ammo.btBoxShape(
-    new Ammo.btVector3(sx * 0.5, sy * 0.5, sz * 0.5)
-  );
-  //Margen para colisione
-  shape.setMargin(margin);
-
-  createRigidBody(object, shape, mass, pos, quat);
-
-  return object;
-}
-
-//Creación de cuerpo rígido, con masa, sujeto a fuerzas, colisiones...
 function createRigidBody(object, physicsShape, mass, pos, quat, vel, angVel) {
-  //Posición
   if (pos) {
     object.position.copy(pos);
   } else {
     pos = object.position;
   }
-  //Cuaternión, es decir orientación
   if (quat) {
     object.quaternion.copy(quat);
   } else {
     quat = object.quaternion;
   }
-  //Matriz de transformación
   const transform = new Ammo.btTransform();
   transform.setIdentity();
   transform.setOrigin(new Ammo.btVector3(pos.x, pos.y, pos.z));
   transform.setRotation(new Ammo.btQuaternion(quat.x, quat.y, quat.z, quat.w));
   const motionState = new Ammo.btDefaultMotionState(transform);
-  //Inercia inicial y parámetros de rozamiento, velocidad
   const localInertia = new Ammo.btVector3(0, 0, 0);
   physicsShape.calculateLocalInertia(mass, localInertia);
-  //Crea el cuerpo
   const rbInfo = new Ammo.btRigidBodyConstructionInfo(
     mass,
     motionState,
@@ -304,64 +196,99 @@ function createRigidBody(object, physicsShape, mass, pos, quat, vel, angVel) {
     body.setAngularVelocity(new Ammo.btVector3(angVel.x, angVel.y, angVel.z));
   }
 
-  //Enlaza primitiva gráfica con física
   object.userData.physicsBody = body;
   object.userData.collided = false;
 
   scene.add(object);
-  //Si tiene masa
   if (mass > 0) {
     rigidBodies.push(object);
-    // Disable deactivation
     body.setActivationState(4);
   }
-  //Añadido al universo físico
   physicsWorld.addRigidBody(body);
 
   return body;
 }
 
-function createRandomColor() {
-  return Math.floor(Math.random() * (1 << 24));
+function shootFromCanon() {
+  const BALL_MASS = 35;
+  const BALL_RADIUS = 0.3;
+
+  if (!canonContainer) {
+    console.warn("El cañón aún no está cargado");
+    return;
+  }
+
+  const ball = new THREE.Mesh(
+    new THREE.SphereGeometry(BALL_RADIUS, 14, 10),
+    ballMaterial
+  );
+  ball.castShadow = true;
+  ball.receiveShadow = true;
+
+  const ballShape = new Ammo.btSphereShape(BALL_RADIUS);
+  ballShape.setMargin(margin);
+
+  canonContainer.getWorldPosition(canonPosition);
+
+  canonDirection.set(0, 0, 1);
+  canonDirection.applyQuaternion(canonContainer.quaternion);
+  canonDirection.normalize();
+
+  pos.copy(canonPosition);
+  pos.add(canonDirection.multiplyScalar(2));
+
+  quat.set(0, 0, 0, 1);
+  const ballBody = createRigidBody(ball, ballShape, BALL_MASS, pos, quat);
+
+  canonDirection.set(0, 0, 1);
+  canonDirection.applyQuaternion(canonContainer.quaternion);
+  canonDirection.normalize();
+  canonDirection.multiplyScalar(50);
+
+  ballBody.setLinearVelocity(
+    new Ammo.btVector3(canonDirection.x, canonDirection.y, canonDirection.z)
+  );
+
+  createMuzzleFlash();
 }
 
-function createMaterial(color) {
-  color = color || createRandomColor();
-  return new THREE.MeshPhongMaterial({ color: color });
+function createMuzzleFlash() {
+  if (!canonContainer) return;
+
+  const flashGeometry = new THREE.SphereGeometry(0.2, 8, 8);
+  const flashMaterial = new THREE.MeshBasicMaterial({
+    color: 0xffaa00,
+    transparent: true,
+    opacity: 1,
+  });
+  const flash = new THREE.Mesh(flashGeometry, flashMaterial);
+
+  canonContainer.getWorldPosition(pos);
+  canonDirection.set(0, 0, 1);
+  canonDirection.applyQuaternion(canonContainer.quaternion);
+
+  flash.position.copy(pos);
+  flash.position.add(canonDirection.multiplyScalar(1.5));
+
+  flash.position.x -= 0.2;
+  flash.position.z -= 0.1;
+  flash.position.y += 0.25;
+
+  scene.add(flash);
+
+  new TWEEN.Tween(flashMaterial)
+    .to({ opacity: 0 }, 200)
+    .onComplete(() => {
+      scene.remove(flash);
+      flashGeometry.dispose();
+      flashMaterial.dispose();
+    })
+    .start();
 }
 
-//Evento de ratón
 function initInput() {
   window.addEventListener("pointerdown", function (event) {
-    //Coordenadas del puntero
-    mouseCoords.set(
-      (event.clientX / window.innerWidth) * 2 - 1,
-      -(event.clientY / window.innerHeight) * 2 + 1
-    );
-
-    raycaster.setFromCamera(mouseCoords, camera);
-
-    // Crea bola como cuerpo rígido y la lanza según coordenadas de ratón
-    const ballMass = 35;
-    const ballRadius = 0.4;
-    const ball = new THREE.Mesh(
-      new THREE.SphereGeometry(ballRadius, 14, 10),
-      ballMaterial
-    );
-    ball.castShadow = true;
-    ball.receiveShadow = true;
-    //Ammo
-    //Estructura geométrica de colisión esférica
-    const ballShape = new Ammo.btSphereShape(ballRadius);
-    ballShape.setMargin(margin);
-    pos.copy(raycaster.ray.direction);
-    pos.add(raycaster.ray.origin);
-    quat.set(0, 0, 0, 1);
-    const ballBody = createRigidBody(ball, ballShape, ballMass, pos, quat);
-
-    pos.copy(raycaster.ray.direction);
-    pos.multiplyScalar(24);
-    ballBody.setLinearVelocity(new Ammo.btVector3(pos.x, pos.y, pos.z));
+    shootFromCanon();
   });
 }
 
@@ -377,23 +304,19 @@ function animationLoop() {
 
   const deltaTime = clock.getDelta();
   TWEEN.update();
-  if (water) water.material.uniforms["time"].value += 0.2 / 60.0;
+  moveWater();
   updatePhysics(deltaTime);
 
   renderer.render(scene, camera);
 }
 
 function updatePhysics(deltaTime) {
-  // Avanza la simulación en función del tiempo
   physicsWorld.stepSimulation(deltaTime, 10);
 
-  // Actualiza cuerpos rígidos
   for (let i = 0, il = rigidBodies.length; i < il; i++) {
     const objThree = rigidBodies[i];
     const objPhys = objThree.userData.physicsBody;
-    //Obtiene posición y rotación
     const ms = objPhys.getMotionState();
-    //Actualiza la correspondiente primitiva gráfica asociada
     if (ms) {
       ms.getWorldTransform(transformAux1);
       const p = transformAux1.getOrigin();
@@ -406,278 +329,91 @@ function updatePhysics(deltaTime) {
   }
 }
 
-function loadPirateShip() {
-  const loader = new GLTFLoader();
-  const path = "src/libs/final.glb";
+function loadObject(
+  path,
+  mass = 0,
+  position = new THREE.Vector3(0, 0, 0),
+  rotation = new THREE.Euler(0, 0, 0),
+  scale = new THREE.Vector3(1, 1, 1),
+  isCanon = false,
+  callback = null
+) {
+  console.log("Cargando ", path);
+  new GLTFLoader().load(path, function (gltf) {
+    const model = gltf.scene;
 
-  loader.load(path, function (gltf) {
-    const shipModel = gltf.scene;
-
-    // 1. Sombras
-    shipModel.traverse(function (child) {
+    model.traverse(function (child) {
       if (child.isMesh) {
         child.castShadow = true;
         child.receiveShadow = true;
       }
     });
 
-    // 2. Calcular dimensiones reales
-    const box = new THREE.Box3().setFromObject(shipModel);
+    const box = new THREE.Box3().setFromObject(model);
     const size = new THREE.Vector3();
     box.getSize(size);
-
     const center = new THREE.Vector3();
     box.getCenter(center);
 
-    if (size.length() === 0) return;
-
-    // 3. Contenedor y Centrado (Igual que antes)
-    // Nota: Pongo visible: true temporalmente para que veas la caja si quieres (ponlo false luego)
     const container = new THREE.Mesh(
       new THREE.BoxGeometry(size.x, size.y, size.z),
-      new THREE.MeshBasicMaterial({
-        visible: false,
-        wireframe: true,
-        color: 0xff0000,
+      new THREE.MeshBasicMaterial({ visible: false })
+    );
+    container.add(model);
+    model.position.copy(center).multiplyScalar(-1);
+
+    const startPos = position.clone().add(new THREE.Vector3(0, size.y, 0));
+    const startQuat = new THREE.Quaternion();
+    startQuat.setFromEuler(rotation);
+
+    const shape = new Ammo.btBoxShape(
+      new Ammo.btVector3(size.x * 0.5, size.y * 0.5, size.z * 0.5)
+    );
+    shape.setMargin(margin);
+
+    createRigidBody(container, shape, mass, startPos, startQuat);
+
+    if (isCanon) canonContainer = container;
+
+    container.scale.set(0, 0, 0);
+    new TWEEN.Tween(container.scale)
+      .to({ x: scale.x, y: scale.y, z: scale.z }, 1500)
+      .easing(TWEEN.Easing.Elastic.Out)
+      .onComplete(() => {
+        if (callback) callback(container);
       })
-    );
-    container.add(shipModel);
-
-    shipModel.position.x = -center.x;
-    shipModel.position.y = -center.y;
-    shipModel.position.z = -center.z;
-
-    const mass = 0;
-    const startPos = new THREE.Vector3(0, 5.5, 0);
-    const startQuat = new THREE.Quaternion(0, 0, 0, 1);
-
-    const hitboxFactor = 0.47;
-
-    const shape = new Ammo.btBoxShape(
-      new Ammo.btVector3(
-        size.x * 0.5 * hitboxFactor,
-        size.y * 0.5 * hitboxFactor,
-        size.z * 0.5 * hitboxFactor
-      )
-    );
-    shape.setMargin(margin);
-
-    createRigidBody(container, shape, mass, startPos, startQuat);
-
-    container.scale.set(0, 0, 0);
-    new TWEEN.Tween(container.scale)
-      .to({ x: 0.5, y: 0.5, z: 0.5 }, 2000)
-      .easing(TWEEN.Easing.Elastic.Out)
       .start();
 
-    console.log(
-      "Barco cargado con hitbox reducida al " + hitboxFactor * 100 + "%"
-    );
+    console.log(path, " cargado correctamente.");
   });
 }
 
-function loadCanon() {
-  const loader = new GLTFLoader();
-  const path = "src/libs/canon.gltf";
+function loadWater() {
+  const RADIUS = 100;
+  const SEGMENTS = 32;
 
-  console.log("Cargando cañón...");
+  const waterGeometry = new THREE.CircleGeometry(RADIUS, SEGMENTS);
+  const flowMap = textureLoader.load(WATER_TEXTURE);
 
-  loader.load(path, function (gltf) {
-    const model = gltf.scene;
+  flowMap.wrapS = THREE.RepeatWrapping;
+  flowMap.wrapT = THREE.RepeatWrapping;
 
-    // Sombras
-    model.traverse(function (child) {
-      if (child.isMesh) {
-        child.castShadow = true;
-        child.receiveShadow = true;
-      }
-    });
-
-    // Calcular Bounding Box
-    const box = new THREE.Box3().setFromObject(model);
-    const size = new THREE.Vector3();
-    box.getSize(size);
-    const center = new THREE.Vector3();
-    box.getCenter(center);
-
-    // Contenedor invisible
-    const container = new THREE.Mesh(
-      new THREE.BoxGeometry(size.x, size.y, size.z),
-      new THREE.MeshBasicMaterial({ visible: false })
-    );
-    container.add(model);
-    model.position.copy(center).multiplyScalar(-1);
-
-    // --- POSICIONAMIENTO MATEMÁTICO ---
-    const mass = 0; // Estático
-
-    // La plataforma marrón está en Y=4 con altura 1 -> Superficie = 4.5
-    // El cañón se coloca en 4.5 + mitad de su altura
-    const startPos = new THREE.Vector3(-23, 3.0 + size.y * 0.5, 7);
-
-    // Rotación (opcional, ajusta si mira al revés)
-    const startQuat = new THREE.Quaternion();
-    startQuat.setFromEuler(new THREE.Euler(0, Math.PI / 1.7, 0)); // Rotar 90 grados
-
-    const shape = new Ammo.btBoxShape(
-      new Ammo.btVector3(size.x * 0.5, size.y * 0.5, size.z * 0.5)
-    );
-    shape.setMargin(margin);
-
-    createRigidBody(container, shape, mass, startPos, startQuat);
-
-    // Animación entrada
-    container.scale.set(0, 0, 0);
-    new TWEEN.Tween(container.scale)
-      .to({ x: 1, y: 1, z: 1 }, 1500)
-      .easing(TWEEN.Easing.Elastic.Out)
-      .start();
-
-    console.log("Cañón cargado sobre la plataforma.");
+  water = new Water(waterGeometry, {
+    textureWidth: 512,
+    textureHeight: 512,
+    waterNormals: flowMap,
+    sunDirection: new THREE.Vector3(),
+    sunColor: 0xffffff,
+    waterColor: 0x001e0f,
+    distortionScale: 3.7,
   });
+
+  water.rotation.x = -Math.PI / 2;
+  water.position.y = 2.5;
+
+  scene.add(water);
 }
 
-function loadIsland() {
-  const loader = new GLTFLoader();
-  const path = "src/libs/scene.gltf";
-
-  console.log("Cargando isla...");
-
-  loader.load(path, function (gltf) {
-    const model = gltf.scene;
-
-    // Sombras
-    model.traverse(function (child) {
-      if (child.isMesh) {
-        child.castShadow = true;
-        child.receiveShadow = true;
-      }
-    });
-
-    const finalScale = 50;
-    model.scale.set(finalScale, finalScale, finalScale);
-
-    // Calcular Bounding Box
-    const box = new THREE.Box3().setFromObject(model);
-    const size = new THREE.Vector3();
-    box.getSize(size);
-    const center = new THREE.Vector3();
-    box.getCenter(center);
-
-    // Contenedor invisible
-    const container = new THREE.Mesh(
-      new THREE.BoxGeometry(size.x, size.y, size.z),
-      new THREE.MeshBasicMaterial({ visible: false })
-    );
-    container.add(model);
-    model.position.copy(center).multiplyScalar(-1);
-
-    // --- POSICIONAMIENTO MATEMÁTICO ---
-    const mass = 0; // Estático
-
-    // La plataforma marrón está en Y=4 con altura 1 -> Superficie = 4.5
-    // El cañón se coloca en 4.5 + mitad de su altura
-    const startPos = new THREE.Vector3(-20, 2.0 + size.y * 0.5, 7);
-
-    // Rotación (opcional, ajusta si mira al revés)
-    const startQuat = new THREE.Quaternion();
-    startQuat.setFromEuler(new THREE.Euler(0, Math.PI / 2, 0)); // Rotar 90 grados
-
-    const shape = new Ammo.btBoxShape(
-      new Ammo.btVector3(size.x * 0.5, size.y * 0.5, size.z * 0.5)
-    );
-    shape.setMargin(margin);
-
-    createRigidBody(container, shape, mass, startPos, startQuat);
-
-    // Animación entrada
-    container.scale.set(0, 0, 0);
-    new TWEEN.Tween(container.scale)
-      .to({ x: 1, y: 1, z: 1 }, 1500)
-      .easing(TWEEN.Easing.Elastic.Out)
-      .start();
-
-    console.log("Cañón cargado sobre la plataforma.");
-  });
-}
-
-function loadBarrel() {
-  const loader = new GLTFLoader();
-
-  // URL de ejemplo de un Barril (puedes cambiarlo por tu "/barrel.glb")
-  const path = "src/libs/barrel.glb";
-
-  console.log("Cargando barril...");
-
-  loader.load(path, function (gltf) {
-    const model = gltf.scene;
-
-    // 1. Sombras
-    model.traverse(function (child) {
-      if (child.isMesh) {
-        child.castShadow = true;
-        child.receiveShadow = true;
-      }
-    });
-
-    // 2. Calcular dimensiones
-    const box = new THREE.Box3().setFromObject(model);
-    const size = new THREE.Vector3();
-    box.getSize(size);
-    const center = new THREE.Vector3();
-    box.getCenter(center);
-
-    // 3. Contenedor para centrar el pivote
-    const container = new THREE.Mesh(
-      new THREE.BoxGeometry(size.x, size.y, size.z),
-      new THREE.MeshBasicMaterial({ visible: false }) // Invisible
-    );
-    container.add(model);
-
-    // Centramos visualmente
-    model.position.x = -center.x;
-    model.position.y = -center.y;
-    model.position.z = -center.z;
-
-    // Ajuste visual extra: El modelo del barril de ejemplo es muy pequeño,
-    // lo escalamos visualmente un poco dentro del contenedor.
-    model.scale.set(1.5, 1.5, 1.5);
-    // Y actualizamos el tamaño físico acorde
-    size.multiplyScalar(1.5);
-
-    // 4. Configuración Física
-    const mass = 20; // Más ligero que el barco
-    const startPos = new THREE.Vector3(0, 5, 3);
-    // Lo rotamos un poco aleatorio para que caiga y ruede
-    const startQuat = new THREE.Quaternion();
-    startQuat.setFromEuler(new THREE.Euler(Math.PI / 2, 0.2, 0));
-
-    // --- CAMBIO IMPORTANTE: FORMA DE CILINDRO ---
-    // Ammo define cilindros con (radio, mitad_altura, radio)
-    const radius = Math.max(size.x, size.z) * 0.5;
-    const height = size.y * 0.5; // Half extents para altura
-
-    const shape = new Ammo.btCylinderShape(
-      new Ammo.btVector3(radius, height, radius)
-    );
-    shape.setMargin(margin);
-
-    // 5. Crear cuerpo y reutilizar las variables globales del barco
-    // Usamos las mismas variables (shipMesh, shipBody) para que la destrucción funcione
-    shipMesh = container;
-    shipBody = createRigidBody(container, shape, mass, startPos, startQuat);
-
-    // Etiqueta para que la bola sepa que puede romperlo
-    shipBody.userData = { tag: "ship" };
-
-    // 6. Animación de entrada
-    container.scale.set(0, 0, 0);
-    new TWEEN.Tween(container.scale)
-      .to({ x: 1, y: 1, z: 1 }, 1000)
-      .easing(TWEEN.Easing.Bounce.Out)
-      .start();
-
-    isShipBroken = false;
-    console.log("Barril cargado.");
-  });
+function moveWater() {
+  if (water) water.material.uniforms["time"].value += 0.2 / 60.0;
 }
