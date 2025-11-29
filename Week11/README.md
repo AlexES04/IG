@@ -5,7 +5,7 @@
 **Fecha:** 29 de Noviembre del 2025
 
 ## Descripción
-En esta práctica, se propone una animación con físicas en [Codesandbox]() para una ligera introducción en el motor de físicas ``ammo.js`` con renderizado 3D (``Three.js``). La escena representa un entorno marítimo donde se encuentra un modelo 3D de un barco, de unas islas y de cañones apuntando al barco pudiendo accionar su disparo. 
+En esta práctica, se propone una animación con físicas en [Codesandbox](https://codesandbox.io/p/sandbox/ig-semana-11-lq5vdp) para una ligera introducción en el motor de físicas ``ammo.js`` con renderizado 3D (``Three.js``). La escena representa un entorno marítimo donde se encuentra un modelo 3D de un barco, de unas islas y de cañones apuntando al barco pudiendo accionar su disparo. 
 
 El objetivo principal es sincronizar una representación gráfica visual (modelos 3D) con un mundo físico invisible, manejando la carga de modelos y la interacción del usuario.
 
