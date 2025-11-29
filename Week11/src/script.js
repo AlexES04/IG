@@ -2,8 +2,6 @@ import * as THREE from "three";
 import Ammo from "ammojs-typed";
 import TWEEN from "@tweenjs/tween.js";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader";
-import { OBJLoader } from "three/examples/jsm/loaders/OBJLoader";
-import { MTLLoader } from "three/examples/jsm/loaders/MTLLoader";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
 import { Water } from "three/examples/jsm/objects/Water.js";
 
@@ -82,7 +80,6 @@ let shipMesh = null;
 let shipBody = null;
 let isShipBroken = false;
 
-// MODIFICADO: Array para almacenar todos los cañones
 const canonContainers = [];
 let canonPosition = new THREE.Vector3();
 let canonDirection = new THREE.Vector3();
@@ -91,7 +88,6 @@ const mouseCoords = new THREE.Vector2();
 const raycaster = new THREE.Raycaster();
 const ballMaterial = new THREE.MeshPhongMaterial({ color: 0x202020 });
 
-// Mundo físico con Ammo
 let physicsWorld;
 const gravityConstant = 7.8;
 let collisionConfiguration;
@@ -247,7 +243,6 @@ function createRigidBody(object, physicsShape, mass, pos, quat, vel, angVel) {
   return body;
 }
 
-// MODIFICADO: Ahora dispara desde un cañón específico
 function shootFromCanon(canonContainer) {
   const BALL_MASS = 35;
   const BALL_RADIUS = 0.3;
@@ -291,7 +286,6 @@ function shootFromCanon(canonContainer) {
   createMuzzleFlash(canonContainer);
 }
 
-// NUEVO: Dispara desde todos los cañones
 function shootFromAllCanons() {
   if (canonContainers.length === 0) {
     console.warn("No hay cañones cargados todavía");
@@ -303,7 +297,6 @@ function shootFromAllCanons() {
   });
 }
 
-// MODIFICADO: Recibe el cañón específico como parámetro
 function createMuzzleFlash(canonContainer) {
   if (!canonContainer) return;
 
@@ -425,7 +418,6 @@ function loadObject(
 
     createRigidBody(container, shape, mass, startPos, startQuat);
 
-    // MODIFICADO: Agregar al array si es cañón
     if (isCanon) canonContainers.push(container);
 
     container.scale.set(0, 0, 0);
