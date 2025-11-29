@@ -38,6 +38,43 @@ const Island = {
   SCALE: new THREE.Vector3(50, 50, 50),
 };
 
+const canons = [
+  [Canon.POSITION, Canon.ROTATION],
+  [new THREE.Vector3(-20, 3.1, 10), new THREE.Euler(0, Math.PI / 2.0, 0)],
+  [new THREE.Vector3(15.0, 3.1, -20), new THREE.Euler(0, Math.PI / -3.2, 0)],
+  [new THREE.Vector3(-40.0, 3.1, -20), new THREE.Euler(0, Math.PI / 2.8, 0)],
+  [new THREE.Vector3(-41.0, 3.1, -16), new THREE.Euler(0, Math.PI / 2.8, 0)],
+  [new THREE.Vector3(50.0, 3.1, 5.0), new THREE.Euler(0, Math.PI / -1.7, 0)],
+];
+
+const islands = [
+  [
+    new THREE.Vector3(-20, 3.0, 7),
+    new THREE.Euler(0, Math.PI / 2.0, 0),
+    new THREE.Vector3(50, 50, 50),
+  ],
+  [
+    new THREE.Vector3(15.0, 3.0, -20.0),
+    Island.ROTATION,
+    new THREE.Vector3(30, 30, 20),
+  ],
+  [
+    new THREE.Vector3(15.0, 3.0, 40.0),
+    Island.ROTATION,
+    new THREE.Vector3(120, 12, 120),
+  ],
+  [
+    new THREE.Vector3(60.0, 3.0, 5.0),
+    new THREE.Euler(0, Math.PI / 1.0, 0),
+    new THREE.Vector3(150, 50, 120),
+  ],
+  [
+    new THREE.Vector3(-50.0, 3.0, -30.0),
+    new THREE.Euler(0, Math.PI / -1.7, 0),
+    new THREE.Vector3(300, 1, 120),
+  ],
+];
+
 let water;
 const clock = new THREE.Clock();
 
@@ -45,8 +82,8 @@ let shipMesh = null;
 let shipBody = null;
 let isShipBroken = false;
 
-// NUEVA: Referencia al cañón
-let canonContainer = null;
+// MODIFICADO: Array para almacenar todos los cañones
+const canonContainers = [];
 let canonPosition = new THREE.Vector3();
 let canonDirection = new THREE.Vector3();
 
@@ -142,22 +179,23 @@ function initPhysics() {
 
 function createObjects() {
   loadWater();
-  loadObject(Ship.MODEL, Ship.MASS, Ship.POSITION, Ship.ROTATION, Ship.SCALE);
+  loadObject(Ship.MODEL, Ship.MASS, Ship.POSITION, 0, Ship.SCALE);
+
   loadObject(
-    Canon.MODEL,
-    Canon.MASS,
-    Canon.POSITION,
-    Canon.ROTATION,
-    Canon.SCALE,
-    Canon.ISCANON
+    "src/libs/pirateAdmiral.glb",
+    Ship.MASS,
+    new THREE.Vector3(-23, 2.6, 8),
+    new THREE.Euler(0, 0, 0),
+    Ship.SCALE
   );
-  loadObject(
-    Island.MODEL,
-    Island.MASS,
-    Island.POSITION,
-    Island.ROTATION,
-    Island.SCALE
-  );
+
+  islands.forEach((island) => {
+    loadObject(Island.MODEL, Island.MASS, island[0], island[1], island[2]);
+  });
+
+  canons.forEach((canon) => {
+    loadObject(Canon.MODEL, Canon.MASS, canon[0], canon[1], Canon.SCALE, true);
+  });
 }
 
 function createRigidBody(object, physicsShape, mass, pos, quat, vel, angVel) {
@@ -209,12 +247,13 @@ function createRigidBody(object, physicsShape, mass, pos, quat, vel, angVel) {
   return body;
 }
 
-function shootFromCanon() {
+// MODIFICADO: Ahora dispara desde un cañón específico
+function shootFromCanon(canonContainer) {
   const BALL_MASS = 35;
   const BALL_RADIUS = 0.3;
 
   if (!canonContainer) {
-    console.warn("El cañón aún no está cargado");
+    console.warn("El cañón no está disponible");
     return;
   }
 
@@ -249,10 +288,23 @@ function shootFromCanon() {
     new Ammo.btVector3(canonDirection.x, canonDirection.y, canonDirection.z)
   );
 
-  createMuzzleFlash();
+  createMuzzleFlash(canonContainer);
 }
 
-function createMuzzleFlash() {
+// NUEVO: Dispara desde todos los cañones
+function shootFromAllCanons() {
+  if (canonContainers.length === 0) {
+    console.warn("No hay cañones cargados todavía");
+    return;
+  }
+
+  canonContainers.forEach((canon) => {
+    shootFromCanon(canon);
+  });
+}
+
+// MODIFICADO: Recibe el cañón específico como parámetro
+function createMuzzleFlash(canonContainer) {
   if (!canonContainer) return;
 
   const flashGeometry = new THREE.SphereGeometry(0.2, 8, 8);
@@ -288,7 +340,7 @@ function createMuzzleFlash() {
 
 function initInput() {
   window.addEventListener("pointerdown", function (event) {
-    shootFromCanon();
+    shootFromAllCanons();
   });
 }
 
@@ -367,13 +419,14 @@ function loadObject(
     startQuat.setFromEuler(rotation);
 
     const shape = new Ammo.btBoxShape(
-      new Ammo.btVector3(size.x * 0.5, size.y * 0.5, size.z * 0.5)
+      new Ammo.btVector3(size.x * 0.2, size.y * 0.3, size.z * 0.5)
     );
     shape.setMargin(margin);
 
     createRigidBody(container, shape, mass, startPos, startQuat);
 
-    if (isCanon) canonContainer = container;
+    // MODIFICADO: Agregar al array si es cañón
+    if (isCanon) canonContainers.push(container);
 
     container.scale.set(0, 0, 0);
     new TWEEN.Tween(container.scale)
