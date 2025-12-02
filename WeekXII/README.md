@@ -4,7 +4,7 @@
 
 **Fecha:** 29 de Diciembre del 2025
 
-**Demo:** [Codesandbox]() | [Youtube]()
+**Demo:** [Codesandbox](https://codesandbox.io/p/sandbox/escena-inicio-vr-ig-forked-h2jv6v) | [Youtube]()
 
 
 ## Descripción
