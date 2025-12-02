@@ -76,16 +76,10 @@ const islands = [
 let water;
 const clock = new THREE.Clock();
 
-let shipMesh = null;
-let shipBody = null;
-let isShipBroken = false;
-
 const canonContainers = [];
 let canonPosition = new THREE.Vector3();
 let canonDirection = new THREE.Vector3();
 
-const mouseCoords = new THREE.Vector2();
-const raycaster = new THREE.Raycaster();
 const ballMaterial = new THREE.MeshPhongMaterial({ color: 0x202020 });
 
 let physicsWorld;
