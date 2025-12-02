@@ -20,3 +20,44 @@ The link of each project is listed down below. Each one contains a README, the c
 - Third Part - Mixed reality
 
 
+# Teoría
+# Bloque I - Fundamentos
+## Tema 1 - Introducción
+
+
+
+## Tema 2 - Primitivas
+
+
+
+## Tema 3 - Transformaciones geométricas
+
+
+
+## Tema 4 - Proyecciones y visibilidad
+
+
+
+## Tema 5 - Iluminación local
+
+
+
+# Bloque II - Realismo
+## Tema 6 - Realismo y pipelina gráfico
+
+## Tema 7 - Luces, transparencias y sombras
+
+## Tema 8 - Texturas
+
+## Tema 9 - Visualización de datos
+
+## Tema 10 - Modelos avanzados y globales
+
+## Tema 11 - Animación
+
+## Tema 12 - Arte por ordenador
+
+
+
+# Bloque III - Realidad mixta
+
