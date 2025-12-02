@@ -15,8 +15,11 @@ The link of each project is listed down below. Each one contains a README, the c
 - Second Part - Realism
     - [Week 7 - Solar System](Week7/README.md)
     - [Week 8 - Data Visualization](Week8/README.md)
-    - [Week 10 - Fragment Shader](Week10/README.md)
-    - [Week 11 - Animation](Week11/README.md)
+    - [Week 10 - Fragment Shader](WeekX/README.md)
+    - [Week 11 - Animation](WeekXI/README.md)
 - Third Part - Mixed reality
+    - [Week 12 - WebXR](WeekXII/README.md)
+    <!--- - [Week 13 - ](WeekXIII/README.md) --->
+
 
 
