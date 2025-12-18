@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
   <head>
-    <title>Basic Scene</title>
+    <title>Basic Scene Fixed</title>
     <meta charset="utf-8" />
     <meta
       name="viewport"
@@ -18,23 +18,145 @@
     <script type="module">
       import { VRButton } from "https://unpkg.com/three@0.126.0/examples/jsm/webxr/VRButton.js";
       import { FBXLoader } from "https://unpkg.com/three@0.126.0/examples/jsm/loaders/FBXLoader.js";
+      import { GLTFLoader } from "https://unpkg.com/three@0.126.0/examples/jsm/loaders/GLTFLoader.js";
       import { XRControllerModelFactory } from "https://unpkg.com/three@0.126.0/examples/jsm/webxr/XRControllerModelFactory.js";
 
-      const SKY_TEXTURE = "https://h6qcvv.csb.app/sky.jpg";
-      const GROUND_TEXTURE = "https://h6qcvv.csb.app/grass.jpg";
-      const TREE_OBJECT = "https://h6qcvv.csb.app/Tree.fbx";
-
-      let camera, scene, renderer;
-      let controllerL, controllerR;
       let controllerActionRadius = 0.1;
-      let checkGrabbingR;
-
-      let textureLoader = new THREE.TextureLoader();
-
+      let camera, scene, renderer;
       let objects = [];
 
+      let walls = [];
+
+      const labyrinthURL = "resources/laby.glb";
+      const grassURL = "resources/grass.jpg";
+
+      let mixer = null;
+      const clock = new THREE.Clock();
+      // Controller
+      let controllerL, controllerR;
+
+      // Loader
+      let textureLoader = new THREE.TextureLoader();
+      const glbLoader = new GLTFLoader();
+      const fbxLoader = new FBXLoader();
+
+      let checkGrabbingR;
+
+      let floor;
+      let buttons = [];
       initConfiguration();
       initScene();
+      initPlayer();
+
+      const userRig = new THREE.Group();
+      camera.position.set(-20, 15, 0);
+
+      userRig.add(camera);
+      userRig.add(controllerL);
+      userRig.add(controllerR);
+      userRig.position.set(19, 0, 25);
+
+      scene.add(userRig);
+
+      function initPlayer() {
+        var controllerModelFactory = new XRControllerModelFactory();
+        controllerL = renderer.xr.getControllerGrip(0);
+        controllerR = renderer.xr.getControllerGrip(1);
+
+        const material = new THREE.MeshPhongMaterial({
+          shininess: 6,
+          shading: true,
+          transparent: 1,
+          opacity: 0.8,
+        });
+
+        const model1 = controllerModelFactory.createControllerModel(
+          controllerL,
+          material
+        );
+        controllerL.add(model1);
+        scene.add(controllerL);
+
+        const model2 =
+          controllerModelFactory.createControllerModel(controllerR);
+        controllerR.add(model2);
+        scene.add(controllerR);
+
+        // Sphere that follow the controller
+        const materialSphereHand = new THREE.MeshPhongMaterial({
+          color: new THREE.Color("rgb(255,255,255)"),
+          shininess: 1,
+          shading: true,
+          transparent: true,
+          opacity: 0.2,
+        });
+        var sphereR = new THREE.Mesh(
+          new THREE.SphereGeometry(controllerActionRadius, 20, 20),
+          materialSphereHand.clone()
+        );
+        controllerR.add(sphereR);
+
+        controllerR.addEventListener("selectstart", SelectEventGrab);
+        controllerR.addEventListener("selectend", SelectEventGrabEnd);
+        function SelectEventGrab(event) {
+          checkGrabbingR = true;
+        }
+
+        function SelectEventGrabEnd(event) {
+          checkGrabbingR = false;
+        }
+
+        var geometry = new THREE.BufferGeometry().setFromPoints([
+          new THREE.Vector3(0, 0, 0),
+          new THREE.Vector3(0, -0, -50),
+        ]);
+
+        var line = new THREE.Line(geometry);
+        controllerL.add(line);
+        controllerL.addEventListener("squeezestart", SelectEventRay);
+
+        function SelectEventRay() {
+          var raycaster = new THREE.Raycaster(),
+            intersected = [];
+          var tempMatrix = new THREE.Matrix4();
+          var intersections = getIntersections(controllerL);
+
+          for (var i = 0; i < intersections.length; i++) {
+            var intersection = intersections[i];
+
+            if (objects.includes(intersection.object)) {
+              var object = intersection.object;
+              let rigPos = new THREE.Vector3();
+              let ctrlPos = new THREE.Vector3();
+              userRig.getWorldPosition(rigPos);
+              controllerL.getWorldPosition(ctrlPos);
+
+              object.position.copy(ctrlPos);
+            }
+
+            if (intersection.object.name === "btn_accion") {
+              objects.forEach((obj) => {
+                obj.scale.multiplyScalar(2);
+              });
+              return;
+            }
+
+            if (floor.includes(intersection.object))
+              userRig.position.set(
+                intersection.point.x,
+                userRig.position.y,
+                intersection.point.z
+              );
+          }
+
+          function getIntersections(controller) {
+            tempMatrix.identity().extractRotation(controller.matrixWorld);
+            raycaster.ray.origin.setFromMatrixPosition(controller.matrixWorld);
+            raycaster.ray.direction.set(0, 0, -1).applyMatrix4(tempMatrix);
+            return raycaster.intersectObjects(scene.children);
+          }
+        }
+      }
 
       function initConfiguration() {
         const container = document.createElement("div");
@@ -42,10 +164,35 @@
 
         scene = new THREE.Scene();
 
-        addSky();
-        addGround();
-        addTrees();
+        const textureSky = textureLoader.load("resources/sky.jpg");
+        const materialSky = new THREE.MeshBasicMaterial({
+          map: textureSky,
+          side: THREE.DoubleSide,
+        });
 
+        const sky = new THREE.Mesh(
+          new THREE.SphereGeometry(40, 32, 32),
+          materialSky
+        );
+        scene.add(sky);
+
+        const textureGround = textureLoader.load(grassURL, function (texture) {
+          texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
+          texture.repeat.set(60, 60);
+        });
+
+        const materialGround = new THREE.MeshStandardMaterial({
+          map: textureGround,
+        });
+
+        let plane = new THREE.Mesh(
+          new THREE.PlaneGeometry(60, 60),
+          materialGround
+        );
+        plane.rotation.set(-3.14159 / 2, 0, 0);
+        plane.receiveShadow = true;
+        floor = [plane];
+        scene.add(plane);
         // Camera
         camera = new THREE.PerspectiveCamera(
           70,
@@ -62,77 +209,11 @@
         renderer.setSize(window.innerWidth, window.innerHeight);
 
         renderer.xr.enabled = true;
-
-        var controllerModelFactory = new XRControllerModelFactory();
-        controllerL = renderer.xr.getControllerGrip(0);
-        controllerR = renderer.xr.getControllerGrip(1);
-
-        controllerR.addEventListener("selectstart", SelectEventGrab);
-        controllerR.addEventListener("selectend", SelectEventGrabEnd);
-        controllerL.addEventListener("squeezestart", SelectEventRay);
-
-        var geometry = new THREE.BufferGeometry().setFromPoints([
-          new THREE.Vector3(0, 0, 0),
-          new THREE.Vector3(0, -0, -50),
-        ]);
-        var line = new THREE.Line(geometry);
-        controllerL.add(line);
-
-        const materialSphereHand = new THREE.MeshPhongMaterial({
-          color: new THREE.Color("rgb(255,255,255)"),
-          shininess: 1,
-          shading: true,
-          transparent: true,
-          opacity: 0.2,
-        });
-        var sphereR = new THREE.Mesh(
-          new THREE.SphereGeometry(controllerActionRadius, 20, 20),
-          materialSphereHand.clone()
-        );
-        controllerR.add(sphereR);
-
-        const material = new THREE.MeshPhongMaterial({
-          shininess: 6,
-          shading: true,
-          transparent: 1,
-          opacity: 0.8,
-        });
-        const model1 = controllerModelFactory.createControllerModel(
-          controllerL,
-          material
-        );
-        controllerL.add(model1);
-        scene.add(controllerL);
-        const model2 =
-          controllerModelFactory.createControllerModel(controllerR);
-        controllerR.add(model2);
-        scene.add(controllerR);
-
         container.appendChild(renderer.domElement);
 
         document.body.appendChild(VRButton.createButton(renderer));
-        renderer.setAnimationLoop(render);
 
-        objects = [
-          SetObject(
-            new THREE.CylinderGeometry(0.2, 0.2, 1, 32),
-            material.clone(),
-            [-0.5, 1.5, 0],
-            new THREE.Color("rgb(226,35,0)")
-          ),
-          SetObject(
-            new THREE.BoxGeometry(1, 1, 1),
-            material.clone(),
-            [0.5, 1.5, 0],
-            new THREE.Color("rgb(100,100, 255)")
-          ),
-          SetObject(
-            new THREE.SphereGeometry(0.6, 20, 20),
-            material.clone(),
-            [0, 1.5, -0.5],
-            new THREE.Color("rgb(0,255,0)")
-          ),
-        ];
+        renderer.setAnimationLoop(render);
       }
 
       function initScene() {
@@ -144,159 +225,174 @@
         light.position.set(0.5, 1, 0.25);
         scene.add(light);
 
-        AddObjects();
-      }
-
-      function addSky() {
-        const textureSky = textureLoader.load(SKY_TEXTURE);
-        const materialSky = new THREE.MeshBasicMaterial({
-          map: textureSky,
-          side: THREE.DoubleSide,
-        });
-        const sky = new THREE.Mesh(
-          new THREE.SphereGeometry(30, 32, 32),
-          materialSky
-        );
-        scene.add(sky);
-      }
-
-      function addGround() {
-        const textureGround = textureLoader.load(
-          GROUND_TEXTURE,
-          function (texture) {
-            texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
-            texture.repeat.set(60, 60);
-          }
-        );
-        const materialGround = new THREE.MeshStandardMaterial({
-          map: textureGround,
-        });
-        let plane = new THREE.Mesh(
-          new THREE.PlaneGeometry(60, 60),
-          materialGround
-        );
-        plane.rotation.set(-3.14159 / 2, 0, 0);
-        plane.receiveShadow = true;
-        scene.add(plane);
-      }
-
-      function addTrees() {
-        new FBXLoader().load(TREE_OBJECT, (object) => {
+        new FBXLoader().load("resources/Tree.fbx", (object) => {
           object.traverse((child) => {
             object.scale.set(0.004, 0.004, 0.004);
+            createTree(object.clone(), [16, 0, 23]);
+            createTree(object.clone(), [16, 0, 25]);
+            createTree(object.clone(), [16, 0, 27]);
+            createTree(object.clone(), [16, 0, 29]);
 
-            const positions = [
-              [0, 0, -10],
-              [5, 0, -3],
-              [5, 0, 6],
-              [15, 0, -20],
-              [0, 0, 10],
-              [-5, 0, 3],
-              [-5, 0, -6],
-              [-15, 0, 20],
-            ];
-
-            positions.forEach((position) => {
-              let tree = object.clone();
-              tree.position.set(position[0], position[1], position[2]);
-              scene.add(tree);
-            });
+            createTree(object.clone(), [23, 0, 10]);
+            createTree(object.clone(), [25, 0, 10]);
+            createTree(object.clone(), [27, 0, 10]);
+            createTree(object.clone(), [29, 0, 10]);
           });
         });
-      }
 
-      function SetObject(geometry, mat, position, color) {
-        mat.color = color;
-        let mesh = new THREE.Mesh(geometry, mat.clone());
-        mesh.position.set(position[0], position[1], position[2]);
-        mesh.scale.set(0.1, 0.1, 0.1);
-        scene.add(mesh);
-        return mesh;
+        function createTree(tree, position) {
+          tree.position.set(position[0], position[1], position[2]);
+          scene.add(tree);
+        }
+
+        glbLoader.load(labyrinthURL, (gltf) => {
+          const model = gltf.scene;
+          console.log("Modelo de laberinto cargado");
+          model.scale.set(2, 2, 2);
+          model.position.set(1, 1, 1);
+
+          model.traverse((child) => {
+            if (child.isMesh) {
+              walls.push(child);
+            }
+          });
+
+          scene.add(model);
+        });
+
+        glbLoader.load("resources/clown.glb", (gltf) => {
+          const model = gltf.scene;
+          const animations = gltf.animations;
+          console.log("Modelo de payaso cargado");
+
+          model.scale.set(0.3, 0.3, 0.3);
+          model.position.set(21, 0, 21);
+
+          scene.add(model);
+
+          objects.push(model);
+        });
+
+        glbLoader.load("resources/spongeBobHouse.glb", (gltf) => {
+          const model = gltf.scene;
+          console.log("Modelo de casa de Bob Esponja cargado");
+
+          model.scale.set(1.5, 1.5, 1.5);
+          model.position.set(25.8, 0.01, 15);
+
+          scene.add(model);
+
+          objects.push(model);
+        });
+
+        glbLoader.load("resources/spongeBob.glb", (gltf) => {
+          const model = gltf.scene;
+          console.log("Modelo de Bob Esponja cargado");
+
+          scene.add(model);
+
+          const animations = gltf.animations;
+
+          console.log(animations);
+
+          model.scale.set(0.7, 0.7, 0.7);
+          model.position.set(25, 0, 20);
+
+          mixer = new THREE.AnimationMixer(model);
+
+          const backflipClip = animations.find((clip) =>
+            clip.name.toLowerCase().includes("mixamo.com")
+          );
+
+          const action = mixer.clipAction(backflipClip);
+          action.play();
+          if (animations.length > 0) {
+            mixer.clipAction(animations[0]).play();
+          }
+        });
       }
 
       function CheckObjects() {
+        let controllerWorldPosition = new THREE.Vector3();
+        controllerR.getWorldPosition(controllerWorldPosition);
+
         for (var i = 0; i < objects.length; i++) {
-          var diferenciaX = controllerR.position.x - objects[i].position.x;
-          var diferenciaY = controllerR.position.y - objects[i].position.y;
-          var diferenciaZ = controllerR.position.z - objects[i].position.z;
           if (
-            Math.sqrt(
-              Math.pow(diferenciaX, 2) +
-                Math.pow(diferenciaY, 2) +
-                Math.pow(diferenciaZ, 2)
-            ) <= controllerActionRadius
-          )
-            objects[i].position.copy(controllerR.position);
-        }
-      }
-
-      function AddObjects() {
-        const material = new THREE.MeshPhongMaterial({
-          shininess: 6,
-          flatShading: true,
-          transparent: 1,
-          opacity: 0.8,
-        });
-
-        SetObject(
-          new THREE.CylinderGeometry(0.2, 0.2, 1, 32),
-          material.clone(),
-          [-0.5, 1.5, 0],
-          new THREE.Color("rgb(226,35,0)")
-        );
-        SetObject(
-          new THREE.BoxGeometry(1, 1, 1),
-          material.clone(),
-          [0.5, 1.5, 0],
-          new THREE.Color("rgb(100,100, 255)")
-        );
-        SetObject(
-          new THREE.SphereGeometry(0.6, 20, 20),
-          material.clone(),
-          [0, 1.5, -0.5],
-          new THREE.Color("rgb(0,255,0)")
-        );
-      }
-
-      function SelectEventGrab(event) {
-        checkGrabbingR = true;
-      }
-
-      function SelectEventGrabEnd(event) {
-        checkGrabbingR = false;
-      }
-
-      function createTree(tree, position) {
-        tree.position.set(position[0], position[1], position[2]);
-        scene.add(tree);
-      }
-
-      function SelectEventRay() {
-        var raycaster = new THREE.Raycaster(),
-          intersected = [];
-        var tempMatrix = new THREE.Matrix4();
-        var intersections = getIntersections(controllerL);
-        for (var i = 0; i < intersections.length; i++) {
-          var intersection = intersections[i];
-          if (objects.includes(intersection.object)) {
-            var object = intersection.object;
-            object.position.set(
-              controllerL.position.x,
-              controllerL.position.y,
-              controllerL.position.z
-            );
+            controllerWorldPosition.distanceTo(objects[i].position) <=
+            controllerActionRadius
+          ) {
+            objects[i].position.copy(controllerWorldPosition);
           }
         }
-        function getIntersections(controller) {
-          tempMatrix.identity().extractRotation(controller.matrixWorld);
-          raycaster.ray.origin.setFromMatrixPosition(controller.matrixWorld);
-          raycaster.ray.direction.set(0, 0, -1).applyMatrix4(tempMatrix);
-          return raycaster.intersectObjects(scene.children);
+      }
+
+      function checkCollision(direction) {
+        if (walls.length === 0) return false;
+
+        const raycaster = new THREE.Raycaster();
+
+        let rayOrigin = userRig.position.clone();
+        rayOrigin.y += 1.0;
+
+        raycaster.set(rayOrigin, direction);
+
+        const intersects = raycaster.intersectObjects(walls);
+
+        if (intersects.length > 0 && intersects[0].distance < 0.5) {
+          return true;
         }
+        return false;
       }
 
       function render() {
         if (checkGrabbingR) CheckObjects();
+        if (mixer) {
+          const delta = clock.getDelta();
+          mixer.update(delta);
+        }
+
+        const speed = 0.05;
+        const session = renderer.xr.getSession();
+        if (session) {
+          for (const source of session.inputSources) {
+            if (source.gamepad && source.handedness === "right") {
+              const xAxis = source.gamepad.axes[2] || 0;
+              const yAxis = source.gamepad.axes[3] || 0;
+
+              if (Math.abs(xAxis) > 0.1 || Math.abs(yAxis) > 0.1) {
+                const euler = new THREE.Euler(0, 0, 0, "YXZ");
+                euler.setFromQuaternion(camera.quaternion);
+                euler.x = 0;
+                euler.z = 0;
+
+                const yawQuaternion = new THREE.Quaternion();
+                yawQuaternion.setFromEuler(euler);
+
+                if (Math.abs(xAxis) > 0.1) {
+                  const moveX = new THREE.Vector3(xAxis * speed, 0, 0);
+                  moveX.applyQuaternion(yawQuaternion);
+
+                  const dirX = moveX.clone().normalize();
+
+                  if (!checkCollision(dirX)) {
+                    userRig.position.add(moveX);
+                  }
+                }
+
+                if (Math.abs(yAxis) > 0.1) {
+                  const moveZ = new THREE.Vector3(0, 0, yAxis * speed);
+                  moveZ.applyQuaternion(yawQuaternion);
+
+                  const dirZ = moveZ.clone().normalize();
+
+                  if (!checkCollision(dirZ)) {
+                    userRig.position.add(moveZ);
+                  }
+                }
+              }
+            }
+          }
+        }
         renderer.render(scene, camera);
       }
     </script>

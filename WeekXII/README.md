@@ -4,7 +4,8 @@
 
 **Fecha:** 29 de Diciembre del 2025
 
-**Demo:** [Codesandbox](https://codesandbox.io/p/sandbox/escena-inicio-vr-ig-forked-h2jv6v) | [Youtube]()
+**Demo:** [Codesandbox](https://codesandbox.io/p/sandbox/ig-semana-12-laberinto-hkn5rh)
 
 
 ## Descripción
+Proyecto para realidad virtual (VR) realizado en CodeSandbox.
